@@ -34,7 +34,7 @@ LT.genMap = function (G, nation) {
   for (let i = 0; i < N * N; i++) G.map.push({ t: 'g', b: null, v: LT.hash(i * 3.3), fert: 1 });
   const T = (x, y) => tile(G, x, y);
   const rr = i => LT.hash(seed * 7.13 + i * 1.7);
-  const blob = (cx, cy, r, t, sd) => { for (let y = -r - 1; y <= r + 1; y++) for (let x = -r - 1; x <= r + 1; x++) { const q = T(Math.round(cx) + x, Math.round(cy) + y); if (q && Math.hypot(x, y) < r * (.6 + .5 * LT.hash(sd + x * 7 + y * 13))) q.t = t; } };
+  const blob = (cx, cy, r, t, sd) => { const R = Math.ceil(r) + 1; for (let y = -R; y <= R; y++) for (let x = -R; x <= R; x++) { const q = T(Math.round(cx) + x, Math.round(cy) + y); if (q && Math.hypot(x, y) < r * (.6 + .5 * LT.hash(sd + x * 7 + y * 13))) q.t = t; } };
   const hx = G.hx, hy = G.hy, far = (x, y, d) => Math.hypot(x - hx - 1, y - hy - 1) > d;
   // sông chính phía đông, nhánh phía tây, một nhánh nhỏ chảy ngang phía bắc
   for (let y = 0; y < N; y++) {
@@ -50,9 +50,11 @@ LT.genMap = function (G, nation) {
   place(12, 'r', 1.6, 3, 11, 300);
   place(14, 'h', 2, 4, 8, 500);
   const iron = (LT.NATIONS[nation].mod.iron || 1);
-  place(Math.max(3, Math.round(9 * iron)), 'm', 1.3, 2.4, 12, 700);
+  place(Math.max(3, Math.round(9 * iron)), 'm', 1.8, 3, 12, 700);
   // vùng quanh phủ luôn là đất trống (trừ nước)
   for (let y = -7; y <= 9; y++) for (let x = -7; x <= 9; x++) { const q = T(hx + x, hy + y); if (q && q.t !== 'w') q.t = 'g'; }
+  // mạch quặng sắt luôn có trong tầm với: một mạch 13–17 ô và một mạch 18–24 ô quanh trị sở (không nằm trên nước), nước nào cũng vậy
+  for (let v = 0; v < 2; v++) { const d0 = v ? 21 : 15, ang0 = rr(900 + v) * 6.283; for (let a = 0; a < 16; a++) { const ang = ang0 + a * .39, cx = Math.round(hx + 1 + Math.cos(ang) * d0), cy = Math.round(hy + 1 + Math.sin(ang) * d0 * .8); if (cx < 5 || cy < 5 || cx > N - 6 || cy > N - 6) continue; const q = T(cx, cy); if (!q || q.t === 'w') continue; blob(cx, cy, 2.2, 'm', seed * 5 + v * 31 + a); break; } }
   // vài tài nguyên gần phủ (bán kính 11–16) để ván đầu có chỗ đặt trại gỗ, mỏ đá, đồi
   blob(hx - 13, hy + 2, 3, 'f', seed + 5); blob(hx + 3, hy - 14, 3, 'f', seed + 9); blob(hx + 12, hy - 8, 2, 'r', seed + 13); blob(hx - 11, hy + 12, 2, 'r', seed + 17); blob(hx + 14, hy + 10, 3, 'h', seed + 21);
   // độ phì của đất 0,7–1,3 (KT §4)
@@ -61,6 +63,12 @@ LT.genMap = function (G, nation) {
     for (let j = -3; j <= 3 && f < 1.3; j++) for (let i = -3; i <= 3; i++) { const o = T(x + i, y + j); if (o && o.t === 'w') { f += .07; j = 9; break; } }
     q.fert = LT.clamp(f, .7, 1.3);
   }
+};
+// mọi ô đặt được của một công trình cần địa hình riêng; sắp theo khoảng cách tới phủ
+LT.placeableTiles = function (G, k) {
+  const d = B[k], out = []; if (!d || !d.need || d.need === 'road') return out;
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const q = G.map[y * N + x]; if (q.b) continue; if (!LT.canPlace(G, k, x, y, true)) out.push({ x, y }); }
+  out.sort((a, b) => Math.hypot(a.x - G.hx, a.y - G.hy) - Math.hypot(b.x - G.hx, b.y - G.hy)); return out;
 };
 LT.near = (G, x, y, t, r = 2) => { for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) { const q = tile(G, x + i, y + j); if (q && q.t === t) return true; } return false; };
 

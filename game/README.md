@@ -81,3 +81,8 @@ Dời trị sở sang thành khác với bản đồ mới (trị sở chỉ nâ
 - **Bot không gian lận** (`node tests/bot.test.js 45`): chơi theo luật, hạng 6 (Hoàng đế) năm 943, 57 thành năm 962, quân ~29k — chưa thống nhất thiên hạ, chưa tới 100k quân.
 
 Kiểm thử: `node tests/battle.test.js`, `sim.test.js`, `war2.test.js`, `round3.test.js`, `audit.js`.
+
+## Vòng 4
+
+- **Trận đánh phát lại theo thời gian** (`js/ui-replay.js`): thanh giằng co hai màu (ta vàng, địch đỏ), ranh giới = sức chiến đấu còn lại (quân số × sĩ khí của đơn vị chưa vỡ) của từng hiệp, ba thanh cánh Tả/Trung/Hữu, lưới 3×3 hai bên, nhật ký sự kiện; tạm dừng, x1/x2/x4, Bỏ qua, tùy chọn "Luôn bỏ qua trận nhỏ" (dưới 3.000 quân, nhớ trong localStorage). Trận đã được tính và áp dụng vào ván trước khi phát nên kết quả và số liệu không đổi; xong bấm "Xem chiến báo" để sang chiến báo chi tiết. Áp dụng cho giặc, dã chiến, công thành, diễn tập.
+- **Mỏ sắt**: nguyên nhân thật là lỗi sinh bản đồ (khối tài nguyên dùng bán kính lẻ nên gần như không có rừng/đá/đồi/quặng nào được tạo ra: mỗi bản đồ 0 ô quặng, chỉ ~38 ô rừng). Đã sửa, thêm hai mạch quặng bảo đảm quanh trị sở, ô quặng vẽ đỏ gỉ lấp lánh, nút Mỏ sắt chuyển sang nhóm Thủ công, đặt công trình cần địa hình thì sáng các ô đặt được và có nút "Tới chỗ đặt gần nhất", cảnh báo khi Lò rèn thiếu quặng. Bản lưu phiên bản 5 không còn tương thích (SAVE_VER 6).

@@ -145,6 +145,13 @@ LT.runBattle = function (cfg, seed, opt) {
     s.reserve.unshift(u); return false;
   };
 
+  // ảnh chụp thế trận (chỉ đọc số liệu, không đụng bộ ngẫu nhiên) để phát lại: sức chiến đấu = quân số × sĩ khí
+  const snapSide = X => {
+    const grid = [[null, null, null], [null, null, null], [null, null, null]], cols = [0, 0, 0]; let pow = 0, n = 0, skw = 0;
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) { const u = S[X].grid[r][c]; if (!u || u.n <= .5) continue; grid[r][c] = { t: u.type, n: Math.round(u.n), sk: Math.round(u.sk), b: !!u.broken }; if (!u.broken) { const p = u.n * u.sk / 100; pow += p; cols[c] += p; n += u.n; skw += u.sk * u.n; } }
+    return { pow, n: Math.round(n), sk: n > 0 ? Math.round(skw / n) : 0, cols, grid };
+  };
+  rep.snap0 = { A: snapSide('A'), B: snapSide('B') };
   for (let h = 1; h <= 12 && !rep.result; h++) {
     const H = { n: h, phase: h <= 2 ? 1 : h <= 8 ? 2 : 3, lines: [], ev: [], atk: { A: 0, B: 0 }, loss: { A: 0, B: 0 } };
     rep.hieps.push(H);
@@ -309,6 +316,7 @@ LT.runBattle = function (cfg, seed, opt) {
       if (h === 9 && s.orders.p3 === 'thuquan') { const mine = strength(X), their = strength(EN[X]); if (mine < their) { s.orderly = true; H.ev.push({ t: 'ev', s: X, txt: 'Thu quân có trật tự: đang thua nên thiệt hại các hiệp cuối ×0,6.' }); } }
     }
     H.after = { A: { n: Math.round(totalAlive('A')), units: alive('A').length }, B: { n: Math.round(totalAlive('B')), units: alive('B').length } };
+    H.snap = { A: snapSide('A'), B: snapSide('B') };
     H.units = {}; for (const X of ['A', 'B']) H.units[X] = LT.sideUnits(S[X]).filter(u => u.r !== undefined && u.r < 3).map(u => ({ type: u.type, pos: posName(u), n: Math.round(u.n), sk: Math.round(u.sk), broken: !!u.broken }));
     // kết thúc?
     const a = S.A, b = S.B;
@@ -335,6 +343,19 @@ LT.runBattle = function (cfg, seed, opt) {
   for (const X of ['A', 'B']) { const s = S[X], u = LT.sideUnits(s); const start = s.startN, end = u.reduce((n, q) => n + q.n, 0); sum[X] = { start, end: Math.round(end), lost: Math.round(start - end), broken: u.filter(q => q.broken && !q.dead).length, dead: u.filter(q => q.dead).length, gensDied: s.genDied }; }
   rep.sum = sum; rep.final = { A: S.A, B: S.B };
   return rep;
+};
+
+// ---- kế hoạch phát lại trận theo thời gian (thuần số liệu, dùng chung cho giao diện và kiểm thử) ----
+// pos = phần thanh thuộc về bên A (ta): sức chiến đấu A / (A + B), sức chiến đấu = Σ quân số × sĩ khí của đơn vị chưa vỡ
+LT.replayPlan = function (rep) {
+  const ratio = (a, b) => a + b > 0 ? a / (a + b) : .5, clampP = p => Math.max(.04, Math.min(.96, p));
+  const mk = (sn, hp) => ({ pos: clampP(ratio(sn.A.pow, sn.B.pow)), powA: sn.A.pow, powB: sn.B.pow, nA: sn.A.n, nB: sn.B.n, skA: sn.A.sk, skB: sn.B.sk, cols: [0, 1, 2].map(c => ratio(sn.A.cols[c], sn.B.cols[c])), colsHas: [0, 1, 2].map(c => sn.A.cols[c] + sn.B.cols[c] > 0), gridA: sn.A.grid, gridB: sn.B.grid });
+  const start = Object.assign(mk(rep.snap0, null), { n: 0, phase: 0, ev: [] });
+  const steps = rep.hieps.map(hp => Object.assign(mk(hp.snap, hp), { n: hp.n, phase: hp.phase, ev: hp.ev.map(e => ({ s: e.s, t: e.t, txt: e.txt })), lossA: hp.loss.A, lossB: hp.loss.B }));
+  const last = steps[steps.length - 1] || start, res = rep.result;
+  const finalPos = res === 'A' ? 1 : res === 'B' ? 0 : last.pos;
+  const fin = { result: res, why: rep.why, pos: finalPos, ev: rep.pursuit ? [{ s: rep.pursuit.side, t: 'ev', txt: 'Kỵ binh truy kích bên tan vỡ, gây thêm ' + Math.round(rep.pursuit.pct * 100) + '% thương vong (≈ ' + Math.round(rep.pursuit.cas) + ' người).' }] : [] };
+  return { start, steps, final: fin };
 };
 
 // ước tính tỉ lệ thắng bằng chạy nhiều lần

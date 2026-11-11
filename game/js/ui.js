@@ -170,7 +170,9 @@ function updateTop() {
 function ui() {
   if (!G) return;
   updateTop(); updateResbar(); updateStats(); updateGoal(); updateAlerts(); refreshBuild();
-  $('tip').textContent = G.tool ? B[G.tool].n + ': ' + B[G.tool].d + (LT.DRAG[G.tool] ? ' (kéo chuột để làm liền)' : '') + ' · Esc để bỏ chọn' : 'Chọn công trình bên dưới rồi bấm lên bản đồ để xây · Kéo để di chuyển · Lăn chuột để phóng to · Bấm vào công trình để xem chi tiết';
+  UI.toolTip = () => G.tool ? B[G.tool].n + ': ' + B[G.tool].d + (LT.DRAG[G.tool] ? ' (kéo chuột để làm liền)' : '') + (B[G.tool].need && B[G.tool].need !== 'road' ? ' · Các ô vàng sáng là chỗ đặt được' : '') + ' · Esc để bỏ chọn' : '';
+  { let gb = $('goNear'); if (!gb) { gb = document.createElement('button'); gb.id = 'goNear'; gb.className = 'tab'; gb.textContent = '📍 Tới chỗ đặt gần nhất'; gb.onclick = () => goNearest(); $('tabs').appendChild(gb); } const need = G.tool && B[G.tool].need && B[G.tool].need !== 'road'; gb.style.display = need ? '' : 'none'; }
+  $('tip').textContent = G.tool ? UI.toolTip() : 'Chọn công trình bên dưới rồi bấm lên bản đồ để xây · Kéo để di chuyển · Lăn chuột để phóng to · Bấm vào công trình để xem chi tiết';
   if (UI.selB) showInspect(UI.selB, true);
 }
 

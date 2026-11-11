@@ -181,7 +181,7 @@ function colSummary(hp) {
   for (const l of hp.lines) { const X = l.s === 'A' ? 'B' : 'A'; if (l.tcol != null) t[X][l.tcol] += l.cas; }
   return ['A', 'B'].map(X => (X === 'A' ? 'ta' : 'địch') + ' mất: tả ' + LT.fmtN(t[X][0]) + ' · giữa ' + LT.fmtN(t[X][1]) + ' · hữu ' + LT.fmtN(t[X][2])).join(' | ');
 }
-function showBattleReport(rep, practice) {
+function showBattleReportFull(rep, practice) {
   const R = rep, nm = R.names, S = R.sum, win = R.result === 'A', lose = R.result === 'B';
   const why = { rout: 'một bên tan vỡ', retreat: 'một bên thu quân', hiep12: 'hết 12 hiệp' }[R.why] || '';
   let h = '<div class="head"><div><div class="kick" style="margin:0">CHIẾN BÁO · ' + esc(LT.TERRAINS[R.terrain].n).toUpperCase() + '</div><h2>' + (practice ? '🧪 ' : win ? '🏆 ' : lose ? '💀 ' : '⚖️ ') + esc(R.title || 'Trận đánh') + ' — ' + (win ? 'THẮNG' : lose ? 'THUA' : 'HÒA') + '</h2></div><button class="x" data-act="close">✕</button></div>';

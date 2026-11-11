@@ -78,8 +78,17 @@ function mound(x, y, v) {
   for (let i = 0; i < 6; i++) line({ x: p.x - 14 * s + i * 5.5 * s, y: p.y - (7 + (i % 3) * 3) * s }, { x: p.x - 13 * s + i * 5.5 * s, y: p.y - (10 + (i % 3) * 3) * s }, '#5f8a48', .8);
 }
 function ore(x, y, v) {
-  boulder(x + .4, y + .42, .42, 15 + v * 14, v * 50, '#8a7466'); boulder(x + .72, y + .7, .26, 8 + v * 6, v * 70, '#6e5d54'); if (v > .4) boulder(x + .2, y + .76, .18, 6, v * 90, '#97705a');
-  const p = P(x + .5, y + .55, 8); for (let i = 0; i < 4; i++) dot({ x: p.x + (i - 1.5) * 5 * s, y: p.y + (i % 2) * 3 * s }, 1.3 * s, '#d98f4a');
+  quad(x, y, 1, 1, 0, '#a8492c88', null);
+  boulder(x + .4, y + .42, .42, 15 + v * 14, v * 50, '#6b3d33'); boulder(x + .72, y + .7, .26, 8 + v * 6, v * 70, '#52302b'); if (v > .4) boulder(x + .2, y + .76, .18, 6, v * 90, '#7d4636');
+  const p = P(x + .5, y + .55, 8), tt = performance.now() / 420;
+  for (let i = 0; i < 5; i++) dot({ x: p.x + (i - 2) * 4.5 * s, y: p.y + (i % 2) * 3 * s - (i % 3) * 2 * s }, (1.5 + .9 * Math.max(0, Math.sin(tt + i * 1.9 + v * 9))) * s, i % 2 ? '#ffb15c' : '#ff7a3d');
+}
+// các ô đặt được của công trình cần địa hình riêng (mỏ sắt, mỏ đá, trại gỗ, ruộng muối, vườn trà): tính một lần mỗi khi đổi công cụ/số công trình
+let hlKey = '', hlList = [];
+function placeableTiles() {
+  const d = G.tool && B[G.tool]; if (!d || !d.need || d.need === 'road' || d.need === 'h' && false) return [];
+  const key = G.tool + '|' + G.bl.length + '|' + G.seatNo + '|' + G.seatId; if (key === hlKey) return hlList;
+  hlKey = key; hlList = LT.placeableTiles(G, G.tool); return hlList;
 }
 
 // ---- vòng vẽ chính ------------------------------------------------------------
@@ -93,6 +102,7 @@ function draw() {
     NIGHT = ph < .8 ? sm(.58, .68, ph) : 1 - sm(.92, 1, ph); DUSK = Math.max(0, 1 - Math.abs(NIGHT - .5) * 2); }
   ctx.clearRect(0, 0, W, H);
   drawGroundCached();
+  if (G.tool && !ZM) { const pl = placeableTiles(), tp = .22 + .12 * Math.sin(performance.now() / 300); for (const t of pl) { const p = P(t.x + .5, t.y + .5); if (p.x < -60 || p.y < -60 || p.x > W + 60 || p.y > H + 60) continue; quad(t.x, t.y, 1, 1, 0, 'rgba(255,230,120,' + tp.toFixed(2) + ')', 'rgba(255,240,170,.55)', 1); } }
   if (hover && G.tool) {
     const err = LT.canPlace(G, G.tool, hover.x, hover.y), ok = !err;
     quad(hover.x, hover.y, 1, 1, 0, ok ? '#ffffff77' : '#d9534a77', ok ? '#fff' : '#8e2f2a', 1.6);

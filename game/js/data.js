@@ -122,7 +122,7 @@ LT.B = {
   farm:   { n: 'Khu ruộng lúa', i: '🌾', c: { go: 15 }, cat: 1, lab: 3, dur: 7, job: { c: 'nong', n: 20 }, d: '20 nông hộ, 360 thạch/năm, gặt tháng 9 (vùng nam 2 vụ). Cần nông cụ, trâu, thủy lợi để tăng sản lượng.' },
   lumber: { n: 'Trại gỗ', i: '🪓', c: { go: 10 }, cat: 1, lab: 2, dur: 8, need: 'f', job: { c: 'nong', n: 10 }, out: { go: 6 }, d: '10 hộ, 6 gỗ/tuần. Phải đặt gần rừng (≤2 ô).' },
   quarry: { n: 'Mỏ đá', i: '⛏️', c: { go: 25 }, cat: 1, lab: 3, dur: 12, need: 'r', job: { c: 'nong', n: 10 }, out: { da: 4 }, d: '10 hộ, 4 đá/tuần. Phải gần núi đá (≤2 ô).' },
-  mine:   { n: 'Mỏ sắt', i: '🪨', c: { go: 30, da: 15, tien: 20 }, cat: 1, lab: 4, dur: 16, need: 'm', job: { c: 'nong', n: 15 }, out: { quang: 4 }, d: '15 hộ, 4 quặng/tuần. Phải đặt gần mạch quặng (≤2 ô).' },
+  mine:   { n: 'Mỏ sắt', i: '🪨', c: { go: 30, da: 15, tien: 20 }, cat: 2, lab: 4, dur: 16, need: 'm', job: { c: 'nong', n: 15 }, out: { quang: 4 }, d: '15 hộ, 4 quặng/tuần. Phải đặt gần mạch quặng (≤2 ô).' },
   salt:   { n: 'Ruộng muối', i: '🧂', c: { go: 30, tien: 10 }, cat: 1, lab: 3, dur: 8, need: 'w', job: { c: 'nong', n: 12 }, out: { muoi: 3 }, d: '12 hộ, 3 muối/tuần (mùa khô ×1,5, mùa mưa ×0,5). Phải gần nước. Muối là nguồn tiền lớn khi chuyên bán.' },
   mulberry: { n: 'Trại dâu tằm', i: '🌳', c: { go: 15 }, cat: 1, lab: 2, dur: 8, job: { c: 'nong', n: 10 }, out: { ken: 3 }, d: '10 hộ, 3 kén/tuần cho xưởng dệt lụa.' },
   tea:    { n: 'Vườn trà', i: '🍃', c: { go: 20, tien: 10 }, cat: 1, lab: 3, dur: 10, need: 'h', job: { c: 'nong', n: 12 }, out: { tra: 2 }, d: '12 hộ, 2 trà/tuần (hái rộ tháng 3–4 ×1,5). Phải đặt gần đồi (≤1 ô).' },

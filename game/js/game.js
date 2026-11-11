@@ -4,7 +4,7 @@
 // ============================================================================
 (function (g) {
 const LT = g.LT = g.LT || {};
-const SAVE_KEY = 'loan-the-lap-quoc-v2', SAVE_KEY_OLD = 'loan-the-lap-quoc-v1', SAVE_VER = 5;
+const SAVE_KEY = 'loan-the-lap-quoc-v2', SAVE_KEY_OLD = 'loan-the-lap-quoc-v1', SAVE_VER = 6;
 
 LT.newYearLedger = () => ({ rev: 0, exp: 0, yield: 0, leave: 0, arrive: 0, thueTien: 0, thueThoc: 0, cho: 0, mono: 0, remitT: 0, remitL: 0, dueT: 0, dueL: 0, quota: 0, hoStart: 0, tbtMua: 0, tbtBan: 0, dtTBT: 0, unpaid: 0 });
 

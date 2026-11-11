@@ -92,6 +92,13 @@ function layoutResize() {
 }
 addEventListener('resize', layoutResize);
 function centerHall() { if (!G) return; const p = P(G.hx + 1, G.hy + 1); ox += W / 2 + 40 - p.x; oy += H * .44 - p.y; }
+function goNearest() {
+  if (!G || !G.tool) return; const list = LT.placeableTiles(G, G.tool);
+  if (!list.length) { toast('Bản đồ này không còn ô nào đặt được ' + B[G.tool].n + (G.tool === 'mine' ? ' — hãy mua quặng ở chợ hoặc dời trị sở' : ''), 'bad'); return; }
+  const c = toTile(W / 2, H / 2); let best = list[0], bd = 1e9; for (const t of list) { const d = Math.hypot(t.x - c.x, t.y - c.y); if (d < bd) { bd = d; best = t; } }
+  if (bd < 4) { const o = list.filter(t => Math.hypot(t.x - c.x, t.y - c.y) >= 4); if (o.length) best = o.reduce((a, t) => Math.hypot(t.x - c.x, t.y - c.y) < Math.hypot(a.x - c.x, a.y - c.y) ? t : a, o[0]); }
+  const p = P(best.x + .5, best.y + .5); ox += W / 2 - p.x; oy += H * .44 - p.y; hover = null; toast('Đã đưa khung nhìn tới ô đặt được gần nhất (' + list.length + ' ô trên bản đồ)', 'good');
+}
 function zoom(f, cx, cy) { const ns = Math.max(.28, Math.min(2.6, s * f)); f = ns / s; ox = cx - (cx - ox) * f; oy = cy - (cy - oy) * f; s = ns; $('zoom-label').textContent = Math.round(s * 100) + '%'; }
 
 // ---- điều khiển ----------------------------------------------------------------------
@@ -125,7 +132,7 @@ cv.addEventListener('pointerdown', e => {
 });
 cv.addEventListener('pointermove', e => {
   hover = toTile(e.clientX, e.clientY);
-  if (G && !G.tool && !pts.size) $('tip').textContent = tileInfo(hover.x, hover.y);
+  if (G && !pts.size) $('tip').textContent = G.tool ? UI.toolTip() + ' — ô này: ' + tileInfo(hover.x, hover.y) : tileInfo(hover.x, hover.y);
   const p = pts.get(e.pointerId); if (!p) return;
   if (pts.size === 1) {
     if (paint === 'area' && UI.area) { UI.area.x1 = hover.x; UI.area.y1 = hover.y; return; }

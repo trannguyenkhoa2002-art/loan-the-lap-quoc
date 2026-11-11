@@ -476,6 +476,7 @@ LT.alerts = function (G) {
   if (st.phonvinh < 28) a.push({ l: 1, t: 'Phồn vinh thấp (' + Math.round(st.phonvinh) + '): thương nhân bỏ đi. Dựng chợ, lát đường.' });
   if (G.flags.homeless) a.push({ l: 1, t: 'Hết chỗ ở — dân muốn đến nhưng không có nhà. Dựng thêm nhà dân.' });
   if (G.city.disconnected > 0) a.push({ l: 1, t: G.city.disconnected + ' công trình chưa nối đường tới kho/chợ (chỉ đạt 60%).' });
+  if ((LT.count(G, 'forge') || LT.count(G, 'armory')) && G.res.quang < 12 && !LT.count(G, 'mine')) a.push({ l: 1, t: 'Lò rèn thiếu quặng sắt: xây 🪨 Mỏ sắt (nhóm Thủ công, cạnh Lò rèn) ở ô có mạch quặng đỏ gỉ — chọn công trình rồi bấm "Tới chỗ đặt gần nhất".' });
   const un = G.bl.filter(b => !b.building && B[b.k] && B[b.k].job && b.sr < .5).length;
   if (un > 0) a.push({ l: 0, t: un + ' công trình thiếu người làm — dựng thêm nhà cho lưu dân đến.' });
   if (G.nghiky >= 50) a.push({ l: 1, t: 'Triều đình nghi kỵ bạn (' + Math.round(G.nghiky) + '/100).' });
