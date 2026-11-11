@@ -84,7 +84,8 @@ button:focus-visible,.b:focus-visible,select:focus-visible,input:focus-visible{o
 /* cửa sổ */
 #modal{position:fixed;inset:0;background:#071b1a99;backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;z-index:40;padding:14px}
 #mBox{width:100%;max-width:520px;max-height:calc(100vh - 28px);overflow:auto;padding:20px 24px;border-color:#cdb57c80;box-shadow:0 30px 100px #000a,inset 0 0 0 5px #e0c98908}
-#mBox.wide{max-width:1000px}#mBox.mid{max-width:700px}
+#mBox.wide{max-width:1000px}#mBox.wide.xw{max-width:1220px}
+.zmap{border:1px solid var(--line);border-radius:5px;overflow:hidden;background:radial-gradient(ellipse at 50% 40%,#2f4d40,#16302a)}.zmap .mapsvg{border:0;border-radius:0}.zbtns{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:4px}.zbtns .btn2{width:34px;height:34px;padding:0;font-size:17px}.zhint{position:absolute;left:8px;bottom:6px;font-size:10.5px;color:#cfd9c8;background:#0f201dcc;padding:2px 8px;border-radius:3px;pointer-events:none}#mBox.mid{max-width:700px}
 #mBox::-webkit-scrollbar{width:7px}#mBox::-webkit-scrollbar-thumb{background:#c9aa6877;border-radius:4px}
 #mBox h2{font:700 24px var(--serif);color:#efdfb6;margin:0 0 6px}
 #mBox h3{font:700 16px var(--serif);color:#e8cf8f;margin:14px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--line)}

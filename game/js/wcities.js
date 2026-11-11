@@ -16,7 +16,7 @@ const SYL = {
 const SUF = ['Châu', 'Thành', 'Khẩu', 'Quan', 'Sơn', 'Lăng', 'Dương', 'Giang', 'Phủ', 'Đô', 'Hà', 'Môn'];
 const REGION = ['bac', 'bac', 'bac', 'tay', 'dong', 'dong', 'dong', 'nam', 'nam', 'nam', 'bac', 'nam'];
 const HO_BASE = [0, [500, 1300], [2500, 6000], [12000, 25000], [40000, 90000]];   // nằm dưới trần mỗi cấp thành (3.000 / 12.000 / 40.000 / 120.000)
-LT.SOLDIER_PER_HO = 1.0;     // quân tối đa của một nước = tổng hộ × 1,0 (tương ứng tổng động viên ~20% hộ thành hộ binh)
+LT.SOLDIER_PER_HO = 1.3;     // quân tối đa của một nước = tổng hộ × 1,0 (tương ứng tổng động viên ~20% hộ thành hộ binh)
 
 LT.initCities = function (G) {
   const w = G.world, cs = w.cities = [], used = new Set();
@@ -52,7 +52,7 @@ LT.initCities = function (G) {
   seat.mine = true; seat.seat = true; seat.ho = LT.totalHo(G); seat.lvl = 1; seat.dt = 58; G.seatId = seat.id;
   w.capIds = NAT.map(n => cs.find(c => c.own === n.id && c.capital).id);
   // quân số thật các nước
-  for (const ns of w.ns) { ns.mob = ns.id < 12 ? .45 + LT.rand(G) * .2 + (NAT[ns.id].chr === 'hiếu chiến' ? .15 : 0) : .6; ns.troops = 0; }
+  for (const ns of w.ns) { ns.mob = ns.id < 12 ? .55 + LT.rand(G) * .15 + (NAT[ns.id].chr === 'hiếu chiến' ? .12 : 0) : .6; ns.troops = 0; }
   LT.syncNations(G); for (const ns of w.ns) ns.troops = Math.round(LT.natMaxTroops(G, ns.id) * ns.mob);
 };
 LT.city = (G, id) => G.world.cities[id];
@@ -132,7 +132,7 @@ LT.citiesWeek = function (G) {
     // tự chủ (CT §6.5): xa, lâu không luân chuyển, tướng nhiều quân ⇒ tự chủ cao; giám quân và thăm viếng ⇒ thấp
     c.auto = clamp(c.auto + (.06 + .05 * c.dist + (c.nop > .75 ? .05 : 0) + (c.binh > 0 ? .03 : 0)) * (c.giam ? .45 : 1) - G.player.uyvong / 2500, 0, 100);
     c.tamo = clamp(c.tamo + (c.auto > 60 ? .0006 : -.0001), .01, .25);
-    c.grain = Math.min(c.ho * 6, c.grain + c.ho * (c.pc === 'nong' ? .16 : .1) - c.gar * LT.LINH_AN * .3);
+    c.grain = Math.min(c.ho * 10, c.grain + c.ho * ((c.pc === 'nong' ? .38 : c.pc === 'thuong' ? .27 : .31) - .15) * (1 - Math.min(.8, m * 1.2)) - c.gar * LT.LINH_AN * .3);
     if (c.giam && wk === 1) { const p = Math.min(G.res.tien, 8); G.res.tien -= p; LT.flowAdd(G, 'tien', -p, 'Giám quân ở ' + c.n); }
     // điều lương về trị sở
     if (c.ship && foodNeed > 0) { const send = Math.min(c.grain * .15, foodNeed / 2), got = send * (1 - .08 * c.dist); if (got > 0) { c.grain -= send; G.dan.luong += got; foodNeed -= got; LT.flowAdd(G, 'dluong', got, 'Điều lương từ ' + c.n); } }
@@ -152,12 +152,29 @@ LT.citiesWeek = function (G) {
     if (c.dt < 15 && LT.rand(G) < .02) { c.ho = Math.round(c.ho * .96); }
   }
   G.orders.left = G.orders.max = 2 + Math.floor(G.player.chinh / 20) + (G.rank >= 4 ? 2 : 0);
+  if (G.week === 1) for (const ns of w.ns) if (ns.alive && ns.id < 12) ns.mob = Math.min(.95, ns.mob + .012);   // các nước dần tăng động viên
   if (quarter) { // quân các nước phục hồi dần về mức động viên
     for (const ns of w.ns) if (ns.alive) { const tg = LT.natMaxTroops(G, ns.id) * ns.mob, atWar = (G.camp && G.camp.nation === ns.id) ? 1.0 : 0; ns.troops += (Math.max(tg, atWar ? LT.natMaxTroops(G, ns.id) * .9 : 0) - ns.troops) * .06; }
   }
   LT.syncNations(G);
 };
-LT.cityYear = function (c) { const pc = LT.PHUONG_CHAM[c.pc].mul; return c.ho * .9 * pc * (.6 + c.chinh / 250) * (c.dt / 70); };
+// ---- hậu cần: đại quân ăn từ tồn lương các thành thuộc quyền, hao 8% mỗi chặng ----
+LT.hopsFrom = function (G, id) { const cs = G.world.cities, d = new Int16Array(cs.length).fill(-1), q = [id]; d[id] = 0; for (let i = 0; i < q.length; i++) for (const n of cs[q[i]].adj) if (d[n] < 0) { d[n] = d[q[i]] + 1; q.push(n); } return d; };
+LT.cityFood = function (G, need) {
+  const ref = G.camp ? G.camp.target : G.seatId, hops = LT.hopsFrom(G, ref); let got = 0;
+  const list = G.world.cities.filter(c => c.mine && c.id !== G.seatId && c.grain > 100).map(c => ({ c, h: Math.max(0, hops[c.id]) })).sort((a, b) => a.h - b.h);
+  for (const { c, h } of list) { if (got >= need - .01) break; const eff = Math.max(.3, 1 - .08 * h), take = Math.min(c.grain * .6, (need - got) / eff); c.grain -= take; got += take * eff; LT.flowAdd(G, 'luong', take * eff, 'Tồn lương ' + c.n + ' (hao ' + Math.round((1 - eff) * 100) + '%)'); }
+  return got;
+};
+LT.logistics = function (G, tid) {
+  const hops = LT.hopsFrom(G, tid), cs = G.world.cities, weekly = LT.armyDemandWeek(G) * 1.06;
+  const src = [{ n: 'Kho quan', v: G.res.luong }, { n: 'Kho dân (quan mua theo giá chợ)', v: G.dan.luong * .6 }];
+  for (const c of cs) if (c.mine && c.id !== G.seatId) { const h = Math.max(0, hops[c.id]), eff = Math.max(.3, 1 - .08 * h); src.push({ n: c.n + ' (' + h + ' chặng, hao ' + Math.round((1 - eff) * 100) + '%)', v: c.grain * .6 * eff }); }
+  const have = src.reduce((a, x) => a + x.v, 0), weeks = weekly > 0 ? have / weekly : 99, c = cs[tid], from = cs.filter(x => x.mine && x.adj.indexOf(tid) >= 0)[0];
+  const march = from ? clamp(Math.ceil(Math.hypot(from.x - c.x, from.y - c.y) * 70), 2, 9) : 4, need = march + 12;
+  return { weekly, have, weeks, march, need, ok: weeks >= need, okMarch: weeks >= march, sources: src.sort((a, b) => b.v - a.v).slice(0, 6) };
+};
+LT.cityYear = function (c) { const pc = LT.PHUONG_CHAM[c.pc].mul; return c.ho * 1.7 * pc * (.6 + c.chinh / 250) * (c.dt / 70); };   // năng suất gốc 1,7 quan/hộ/năm (chợ, muối, trà, thủ công; tài liệu để ngỏ)
 LT.cityOrderUse = function (G, n) { if (G.rank < 4) return true; if (G.orders.left < (n || 1)) return false; G.orders.left -= (n || 1); return true; };
 LT.cityPolicy = function (G, id, k, v) {
   const c = G.world.cities[id]; if (!c || !c.mine) return { ok: false, err: 'Không phải thành của bạn' };
@@ -204,6 +221,56 @@ LT.aiWar = function (G) {
   }
   LT.syncNations(G);
 };
+// ---- DỜI TRỊ SỞ (GP §8): sang thành lớn hơn, xây tay trên bản đồ mới sinh theo thành đó; thành cũ thành bảng số liệu ----
+LT.relocateOptions = G => G.rank < 2 || G.camp || G.pendingBattle ? [] : G.world.cities.filter(c => c.mine && c.id !== G.seatId && c.lvl > G.seatLvl);
+LT.autoSettle = function (G, ho, lvl) {
+  const hx = G.hx, hy = G.hy, N = LT.N, cx = hx + 1, cy = hy + 1, R = 34;
+  const near = [];
+  for (let y = Math.max(1, cy - R); y < Math.min(N - 1, cy + R); y++) for (let x = Math.max(1, cx - R); x < Math.min(N - 1, cx + R); x++) { const d = Math.hypot(x - cx, y - cy); if (d <= R) near.push([d, x, y]); }
+  near.sort((a, b) => a[0] - b[0]);
+  const P = (k, x, y) => { if (LT.canPlace(G, k, x, y, true) !== '') return null; const r = LT.place(G, k, x, y, { free: true, instant: true, defer: true }); return r.ok ? r.b : null; };
+  const isRd = (x, y) => (((x - hx) % 6 + 6) % 6 === 2) || (((y - hy) % 6 + 6) % 6 === 3);
+  for (const [, x, y] of near) if (isRd(x, y)) P('road', x, y);
+  const adjRoad = (x, y) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([i, j]) => { const q = LT.tileAt(G, x + i, y + j); return q && q.b && q.b.k === 'road'; });
+  const spots = near.filter(([, x, y]) => !isRd(x, y) && adjRoad(x, y)).map(a => [a[1], a[2]]);
+  const tier = lvl >= 3 ? 'mansion' : lvl === 2 ? 'terrace' : 'house', capK = LT.B[tier].cap, nHouse = Math.ceil(ho * 1.12 / capK);
+  const nFarm = Math.min(40, Math.ceil(ho * .5 / 90));
+  const plan = [['granary', 2], ['market', 3], ['well', 6], ['watch', 4], ['clinic', 1], ['school', 1], ['temple', 1], ['barracks', 2], [tier, nHouse], ['farm', nFarm]];
+  let si = 0, farms = 0, houses = 0, staffSi = 0;
+  for (const [k, n] of plan) for (let i = 0; i < n && si < spots.length;) { const [x, y] = spots[si++]; const b = P(k, x, y); if (b) { i++; if (k === 'farm') farms++; if (LT.HOUSEK[k]) houses++; } }
+  LT.recalcCity(G);
+  const nong = Math.min(farms * 20 + 40, Math.round(ho * .42)), cong = Math.round(ho * .12), thuong = Math.round(ho * .06), si2 = Math.round(ho * .012), tang = Math.round(ho * .006);
+  G.H = { luu: Math.max(0, ho - nong - cong - thuong - si2 - tang - 3), nong, cong, thuong, si: si2, tang, binh: 0, quan: 3, hao: 0 };
+  G.dan.luong = Math.round(ho * 5.4 * .6); G.wealth = Math.round(ho * 2.2);
+  for (const b of G.bl) { if (b.k === 'farm') b.acc = 0; }
+  LT.recalcCity(G);
+};
+LT.relocate = function (G, id) {
+  const opt = LT.relocateOptions(G).find(c => c.id === id); if (!opt) return { ok: false, err: 'Không dời được sang thành này (cần thành của bạn, cấp cao hơn trị sở hiện tại, không đang có chiến dịch/trận)' };
+  const w = G.world, old = w.cities[G.seatId], nw = opt;
+  // thành cũ → bảng số liệu, giữ nguyên dân số, quân đồn trú, thành phòng, lương
+  const archive = G.archive || (G.archive = {}); archive[old.id] = { bl: G.bl.map(b => Object.assign({}, b)), seatNo: G.seatNo || 0, hx: G.hx, hy: G.hy };
+  old.seat = false; old.ho = Math.max(60, LT.totalHo(G) - G.H.binh); old.binh = G.H.binh; old.lvl = G.seatLvl; old.dt = G.stat.dantam; old.wall = G.stat.thanhphong; old.gar = Math.round(old.ho * .05); old.grain = Math.round(G.dan.luong * .5 + G.res.luong * .1); old.base = old.ho; old.seatNo = G.seatNo || 0;
+  LT.manage(G, old); old.chinh = Math.max(old.chinh, G.player.chinh - 10); old.ship = true; old.lowtax = 0; old.tan = 0;
+  for (const u of G.units) if (u.from == null) u.from = old.id;
+  // thành mới → trị sở
+  const ho = Math.min(nw.ho, [0, 1500, 4000, 9000, 16000][nw.lvl]);
+  nw.seat = true; nw.ho = Math.max(60, nw.ho - ho); G.seatId = nw.id; G.seatLvl = nw.lvl; G.seatNo = nw.seatNo != null ? nw.seatNo : (G.maxSeatNo = (G.maxSeatNo || 0) + 1);
+  nw.seatNo = G.seatNo; nw.binh = 0; nw.tan = 0;
+  G.bl = []; G.nextId = 1; G.units.forEach(u => { if (u.from == null) u.from = old.id; });
+  G.map = []; LT.genMap(G, G.nation);
+  const hall = { id: G.nextId++, k: 'hall', x: G.hx, y: G.hy, w: 2, h: 2, building: false, progress: 1 }; G.bl.push(hall); for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) LT.tileAt(G, G.hx + i, G.hy + j).b = hall;
+  const arc = archive[nw.id];
+  if (arc && arc.seatNo === G.seatNo) { for (const b0 of arc.bl) { if (b0.k === 'hall') continue; const b = Object.assign({}, b0); b.id = G.nextId++; G.bl.push(b); const q = LT.tileAt(G, b.x, b.y); if (q) q.b = b; } LT.recalcCity(G); const keep = ho; LT.autoSettleHouseholds(G, keep); }
+  else LT.autoSettle(G, ho, nw.lvl);
+  G.flow = LT.newFlow(); G.lab.used = 0; G.lab.budget = LT.laoDichBudget(G); G.formation = null; LT.ensureFormation(G);
+  G.stat.thanhphong = Math.max(0, Math.round(G.city.wallPts)); G.stat.dantam = Math.max(G.stat.dantam, 50);
+  LT.recalcCity(G); LT.updatePrices(G); LT.syncNations(G);
+  LT.log(G, 'DỜI TRỊ SỞ: từ nay bạn trị ' + nw.n + ' (' + LT.CITY_LEVELS[nw.lvl].n + ', ' + LT.fmtN(ho) + ' hộ). Thành cũ ' + old.n + ' thành bảng số liệu, giữ nguyên ' + LT.fmtN(old.ho) + ' hộ.', 'good');
+  LT.addChron(G, 'Bạn dời trị sở sang ' + nw.n + '.');
+  return { ok: true, from: old.n, to: nw.n, ho };
+};
+LT.autoSettleHouseholds = function (G, ho) { const nong = Math.min(G.city.farms * 20 + 40, Math.round(ho * .42)), cong = Math.round(ho * .12), thuong = Math.round(ho * .06), si = Math.round(ho * .012), tang = Math.round(ho * .006); G.H = { luu: Math.max(0, ho - nong - cong - thuong - si - tang - 3), nong, cong, thuong, si, tang, binh: 0, quan: 3, hao: 0 }; G.dan.luong = Math.round(ho * 5.4 * .6); G.wealth = Math.round(ho * 2.2); };
 LT.PHUONG_CHAM = {
   nong: { n: 'Khuyến nông', mul: 1.25, d: 'Lương +25%, dân tăng nhanh' },
   thuong: { n: 'Hưng thương', mul: 1.15, d: 'Thuế chợ, hàng hóa +30%, lương −10%' },

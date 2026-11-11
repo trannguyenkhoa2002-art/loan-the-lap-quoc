@@ -68,3 +68,16 @@ Ngạch võ tướng và các kỳ thi võ; chọn lại ngạch; bè phái, đ�
 
 ## Còn dở / bỏ ra ngoài (vòng 2)
 Dời trị sở sang thành khác với bản đồ mới (trị sở chỉ nâng cấp thành theo bậc); bè phái, đình nghị; gián điệp; mưu kế ngoài phục binh/trá bại; thủy quân; lệnh/thánh chỉ chỉ có 8 loại chọn lọc; kết cục "Danh thần"; cân bằng dài hạn (10–20 giờ) chưa được chơi thử thật; AI các nước đánh nhau ở mức đơn giản (không hành quân từng bước); các nước máy chưa xưng đế/tự lập.
+
+## Vòng 3 — những gì đã thêm
+
+- **Bản đồ 120 thành thu phóng được** (cuộn chuột quanh con trỏ, kéo để di chuyển, nút ＋ − ⌂, hiện thêm tên/cấp/quân đồn trú khi phóng to, bấm chọn đúng thành ở mọi mức thu phóng). Bản đồ "12 nước" dùng chung cơ chế.
+- **Đại chiến ≥100.000 quân**: quân ra đón của thành lớn/kinh đô được tính lại (`LT.muster`), AI có thêm quân (`SOLDIER_PER_HO` 1,3, huy động tăng theo năm).
+- **Hậu cần**: quân ăn lương các thành dọc đường (hao 8%/chặng); bảng "Hậu cần" và cột "Lương nuôi (tuần)" ở tab Chiến dịch.
+- **Hộp thoại khi chiến dịch tan** (đói / bại trận) và dừng thời gian.
+- **Diễn tập sa bàn** co giãn theo quân của bạn (0,5× / 1× / 1,5×).
+- **Tự xếp trận** đưa đơn vị tàn xuống dự bị; nút "Gộp đơn vị tàn".
+- **Dời trị sở** (từ hạng 2): bản đồ xây tay chuyển sang thành lớn hơn, thành cũ thành bảng số liệu.
+- **Bot không gian lận** (`node tests/bot.test.js 45`): chơi theo luật, hạng 6 (Hoàng đế) năm 943, 57 thành năm 962, quân ~29k — chưa thống nhất thiên hạ, chưa tới 100k quân.
+
+Kiểm thử: `node tests/battle.test.js`, `sim.test.js`, `war2.test.js`, `round3.test.js`, `audit.js`.

@@ -164,6 +164,7 @@ LT.provideLuong = function (G, need, label) {
     const p = (G.price.luong || .4) * 1.1, cost = Math.min(G.res.tien, lack * p), qty = cost / p;
     if (qty > 0) { addDan(G, -qty, 'Quan mua lương cho quân'); add(G, 'tien', -cost, 'Mua lương cho quân'); G.wealth += cost; got += qty; }
   }
+  if (need - got > .001 && G.world && G.world.cities) got += LT.cityFood(G, need - got);
   return got;
 };
 
@@ -251,9 +252,10 @@ function spend(G) {
   // quân phí (KT §12): lương 0,05 quan + 0,06 thạch mỗi lính mỗi tuần; hương binh chỉ phụ cấp
   const n = LT.armyCount(G);
   if (n > 0) {
-    const pay = n * LT.LINH_LUONG * (G.rank === 1 ? .15 : 1), pt = take(G, 'tien', pay, 'Quân lương (' + n + ' lính)');
+    const pay = n * LT.LINH_LUONG * (G.rank === 1 ? .15 : G.rank >= 4 ? .8 : 1), pt = take(G, 'tien', pay, 'Quân lương (' + n + ' lính)');
     G.wealth += pt * .5; G.yr.exp += pt;
     const food = LT.armyDemandWeek(G), got = LT.provideLuong(G, food, 'Quân ăn');
+    G.foodShort = got < food - .01;
     if (pt < pay - .01 || got < food - .01) { G.armyUnpaid++; for (const u of G.units) { u.sk = Math.max(0, u.sk - 2); if (LT.rand(G) < .08) { const d = Math.ceil(u.n * .02); u.n = Math.max(0, u.n - d); LT.soldiersDied(G, u, d); } } if (G.armyUnpaid % 6 === 1) LT.log(G, 'Quân thiếu lương thực hoặc quân lương: sĩ khí tụt, lính đào ngũ!', 'bad'); }
     else G.armyUnpaid = 0;
   }

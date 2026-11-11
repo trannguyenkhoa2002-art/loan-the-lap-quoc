@@ -8,7 +8,7 @@ const isBuilt = b => !!b && !b.building;
 const isRoad = b => !!b && !b.building && (b.k === 'road' || b.k === 'pave' || b.k === 'bridge');
 const tile = (x, y) => x >= 0 && y >= 0 && x < N && y < N ? G.map[y * N + x] : null;
 const isW = (x, y) => { const q = tile(x, y); return !!(q && q.b && isBuilt(q.b) && (q.b.k === 'wall' || q.b.k === 'tower' || q.b.k === 'gate')); };
-let hover = null, sceneActors = [];
+let hover = null, sceneActors = [], ZM = false;
 let WALK = [], FL = [];
 const float = (x, y, txt) => FL.push({ x, y, txt, t: 0 });
 
@@ -85,7 +85,7 @@ function ore(x, y, v) {
 // ---- vòng vẽ chính ------------------------------------------------------------
 function draw() {
   if (!G) return;
-  frameNo++; budget = 4; prevVisB = visB; visB = 0;
+  frameNo++; budget = 4; prevVisB = visB; visB = 0; ZM = performance.now() - zoomT < 260;
   if (frameNo % 240 === 0) for (const [k, v] of sprites) if (v.seen < frameNo - 300) sprites.delete(k);
   if (s !== lastS) { lastS = s; zoomT = performance.now(); }
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.globalCompositeOperation = 'source-over'; GLOW = [];
@@ -109,13 +109,13 @@ function draw() {
   for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
     const q = G.map[y * N + x]; if (q.t === 'g' || q.t === 'w') continue;
     const a = P(x, y); if (a.x < -TW * 2 * s || a.x > W + TW * 2 * s || a.y < -TH * 3 * s || a.y > H + 80 * s) continue;
-    if (q.t === 'f') L.push({ k: x + y + 1, f: s < .5 ? () => { const p = P(x + .5, y + .5); dot({ x: p.x, y: p.y - 6 * s }, 9 * s * (.8 + q.v * .4), q.v > .5 ? '#4f8a4a' : '#3c6a45'); } : () => tree(x, y, q.v) });
-    else if (q.t === 'r') L.push({ k: x + y + 1, f: s < .5 ? () => { const p = P(x + .5, y + .5); dot({ x: p.x, y: p.y - 3 * s }, 8 * s, '#9a9d9a'); } : () => rock(x, y, q.v) });
+    if (q.t === 'f') L.push({ k: x + y + 1, f: (s < .5 || ZM) ? () => { const p = P(x + .5, y + .5); dot({ x: p.x, y: p.y - 6 * s }, 9 * s * (.8 + q.v * .4), q.v > .5 ? '#4f8a4a' : '#3c6a45'); } : () => tree(x, y, q.v) });
+    else if (q.t === 'r') L.push({ k: x + y + 1, f: (s < .5 || ZM) ? () => { const p = P(x + .5, y + .5); dot({ x: p.x, y: p.y - 3 * s }, 8 * s, '#9a9d9a'); } : () => rock(x, y, q.v) });
     else if (q.t === 'm') L.push({ k: x + y + 1, f: () => ore(x, y, q.v) });
     else if (q.t === 'h' && !q.b) L.push({ k: x + y + .6, f: () => mound(x, y, q.v) });
   }
   for (const b of G.bl) { if (isRoad(b)) continue; const a = P(b.x, b.y); if (a.x < -TW * 3 * s || a.x > W + TW * 3 * s || a.y < -TH * 6 * s || a.y > H + 120 * s) continue; L.push(b.k === 'hall' ? { k: b.x + b.y + 2.6, f: () => drawBuildingCached(b) } : { k: b.x + b.y + 1, f: () => drawBuildingCached(b) }); }
-  WALK.forEach((w, i) => { const st = ST[w.cls] || ST.luu; L.push({ k: w.x + w.y, f: () => person(w.x, w.y, w.cls === 'quan' && i % 2 ? '#6a3a8a' : st[0], w.ph, '#f1c9a5', st[1], (w.cls === 'nong' || w.cls === 'thuong') && i % 2 === 0, w.cls === 'binh') }); });
+  if (!ZM) WALK.forEach((w, i) => { const st = ST[w.cls] || ST.luu; L.push({ k: w.x + w.y, f: () => person(w.x, w.y, w.cls === 'quan' && i % 2 ? '#6a3a8a' : st[0], w.ph, '#f1c9a5', st[1], (w.cls === 'nong' || w.cls === 'thuong') && i % 2 === 0, w.cls === 'binh') }); });
   if (G.raid) {
     const r = G.raid, k = Math.max(0, Math.min(.92, 1 - r.t / (r.t0 || 3))), n = Math.min(10, Math.ceil(r.total / 25));
     for (let i = 0; i < n; i++) {
@@ -124,8 +124,8 @@ function draw() {
       L.push({ k: rx + ry, f: () => { person(rx, ry, i % 2 ? '#3a2a2a' : '#4a2f2a', i * 3, '#c9a184'); const p = P(rx, ry, 16); line({ x: p.x + 4 * s, y: p.y + 9 * s }, { x: p.x + 7 * s, y: p.y - 6 * s }, '#6b4a2e', 1.2); poly([{ x: p.x + 5.8 * s, y: p.y - 5 * s }, { x: p.x + 8.2 * s, y: p.y - 5.5 * s }, { x: p.x + 7.6 * s, y: p.y - 10 * s }], '#d0d4d8', OUT, .4); if (i === 0) flag(rx + .25, ry, 0, 30, '#2f2a2a'); } });
     }
   }
-  sceneActors = traffic.map(a => ({ k: a.x + a.y, f: () => a.kind === 0 ? drawRider(a) : drawWagon(a) }));
-  for (const a of traffic) if (a.kind === 2 && a.trail) for (const n of [9, 18, 27]) {
+  sceneActors = ZM ? [] : traffic.map(a => ({ k: a.x + a.y, f: () => a.kind === 0 ? drawRider(a) : drawWagon(a) }));
+  if (!ZM) for (const a of traffic) if (a.kind === 2 && a.trail) for (const n of [9, 18, 27]) {
     const q = a.trail[n]; if (!q || !roadAt(Math.floor(q.x), Math.floor(q.y))) continue;
     sceneActors.push({ k: q.x + q.y, f: () => { if (n === 27) { person(q.x, q.y, '#81617d', a.phase, '#e5c3a0', 'non', 1); return; } horseBody(q.x, q.y, a.phase + n, q.dirX ?? 1, q.dirY ?? 0, '#78634d'); box(q.x - .08, q.y - .15, .17, .19, 10, 5, n === 9 ? '#a58e63' : '#907254'); } });
   }
@@ -205,10 +205,12 @@ function drawGroundCached() {
   let built = 0; for (const b of G.bl) if (!b.building) built++;
   const key = [ox.toFixed(1), oy.toFixed(1), s.toFixed(3), W, H, DPR, showGrid ? 1 : 0, G.tool ? 1 : 0, G.bl.length, built, Math.round(NIGHT * 6)].join('|'), now = performance.now();
   if (!groundCache || groundCache.W !== W || groundCache.H !== H || groundCache.dpr !== DPR) { const c = document.createElement('canvas'); c.width = W * DPR; c.height = H * DPR; groundCache = { c, W, H, dpr: DPR }; }
+  const zoomingNow = now - zoomT < 260 && groundCache.key && groundCache.s && Math.abs(groundCache.s - s) > .0005;
+  if (zoomingNow) { const kk = s / groundCache.s; ctx.drawImage(groundCache.c, ox - groundCache.ox * kk, oy - groundCache.oy * kk, W * kk, H * kk); return; }
   if (groundCache.key !== key || now - groundCache.t > 700) {
     const o = groundCache.c.getContext('2d'); o.setTransform(DPR, 0, 0, DPR, 0, 0); o.clearRect(0, 0, W, H);
     const sG = GLOW; ctx = o; try { drawGround(); } finally { ctx = MAINCTX; GLOW = sG; }
-    groundCache.key = key; groundCache.t = now;
+    groundCache.key = key; groundCache.t = now; groundCache.ox = ox; groundCache.oy = oy; groundCache.s = s;
   }
   ctx.drawImage(groundCache.c, 0, 0, W, H);
 }

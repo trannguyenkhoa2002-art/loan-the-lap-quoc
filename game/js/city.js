@@ -70,19 +70,19 @@ LT.pay = (G, c, k = 1, label) => { for (const r in c) { G.res[r] = Math.max(0, (
 LT.count = (G, k) => { let n = 0; for (const b of G.bl) if (b.k === k && !b.building) n++; return n; };
 LT.countAll = (G, k) => { let n = 0; for (const b of G.bl) if (b.k === k) n++; return n; };
 
-LT.canPlace = function (G, k, x, y) {
+LT.canPlace = function (G, k, x, y, free) {
   const q = tile(G, x, y); if (!q) return 'Ngoài bản đồ';
   if (k === 'del') return q.b && q.b.k !== 'hall' ? '' : 'Không có gì để phá';
   const d = B[k]; if (!d) return 'Công trình lạ';
-  if (d.rank && d.rank > G.rank) return 'Cần chức ' + LT.RANKS[d.rank].n + ' mới xây được';
+  if (!free && d.rank && d.rank > G.rank) return 'Cần chức ' + LT.RANKS[d.rank].n + ' mới xây được';
   if (q.b) return 'Ô này đã có công trình';
-  if (k === 'bridge') { if (q.t !== 'w') return 'Cầu chỉ bắc trên sông'; if (![[1, 0], [-1, 0], [0, 1], [0, -1]].some(([i, j]) => { const o = tile(G, x + i, y + j); return o && isRoadLike(o.b); })) return 'Cầu phải nối với đường'; return LT.afford(G, d.c) ? '' : 'Thiếu vật liệu: ' + LT.costTxt(d.c); }
+  if (k === 'bridge') { if (q.t !== 'w') return 'Cầu chỉ bắc trên sông'; if (![[1, 0], [-1, 0], [0, 1], [0, -1]].some(([i, j]) => { const o = tile(G, x + i, y + j); return o && isRoadLike(o.b); })) return 'Cầu phải nối với đường'; return free || LT.afford(G, d.c) ? '' : 'Thiếu vật liệu: ' + LT.costTxt(d.c); }
   if (q.t !== 'g' && !(q.t === 'h' && k !== 'farm')) return k === 'farm' ? 'Ruộng chỉ làm trên đất bằng' : 'Chỉ xây được trên đất trống hoặc đồi';
   if (d.need === 'road') { if (![[1, 0], [-1, 0], [0, 1], [0, -1]].some(([i, j]) => { const o = tile(G, x + i, y + j); return o && isRoadLike(o.b); })) return 'Phải đặt sát đường'; }
   else if (d.need === 'h') { if (q.t !== 'h' && !LT.near(G, x, y, 'h', 1)) return 'Phải đặt trên hoặc sát đồi'; }
   else if (d.need === 'w3') { if (!LT.near(G, x, y, 'w', 3)) return 'Phải đặt trong 3 ô quanh nước'; }
   else if (d.need && !LT.near(G, x, y, d.need)) return d.need === 'f' ? 'Phải gần rừng' : d.need === 'r' ? 'Phải gần núi đá' : d.need === 'm' ? 'Phải gần mạch quặng sắt' : 'Phải gần nước';
-  if (!LT.afford(G, d.c)) return 'Thiếu vật liệu: ' + LT.costTxt(d.c);
+  if (!free && !LT.afford(G, d.c)) return 'Thiếu vật liệu: ' + LT.costTxt(d.c);
   return '';
 };
 

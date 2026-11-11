@@ -87,6 +87,7 @@ function courtQuanlo() {
     } else if (pr.ready) h += '<button class="btn" data-act="goPromo">Xin thăng ' + pr.name + '</button>';
     else if (pr.needExam) h += '<button class="btn" data-act="goExam">Dự kỳ Tỉnh thí</button> <span class="hint">Trượt thì thi lại ngay, đề mới mỗi lần.</span>';
   } else h += '<p class="pos">Bạn đã là Hoàng đế — đích cuối là thống nhất thiên hạ: giữ 90 trên 120 thành, gồm cả kinh đô Trung Nguyên (hiện ' + LT.mineCount(G) + ').</p>';
+  if (G.rank >= 2) { const ro = LT.relocateOptions(G); h += '<h3>Dời trị sở</h3><div class="hint">Trị sở hiện tại: <b>' + esc(G.world.cities[G.seatId].n) + '</b> (' + LT.CITY_LEVELS[G.seatLvl].n + '). Dời sang thành lớn hơn để xây tay ở đó trên bản đồ mới; thành cũ chuyển thành bảng số liệu và giữ nguyên dân số, quân đồn trú, lương (GP §8).</div>' + (ro.length ? ro.map(c => '<button class="btn2" style="margin:4px 6px 0 0" data-act="relocate" data-id="' + c.id + '" data-tip="' + esc('Dời sang ' + c.n + ': ' + LT.CITY_LEVS_TXT(c)) + '">🏯 Dời sang ' + esc(c.n) + ' (' + LT.CITY_LEVELS[c.lvl].n + ', ' + LT.fmtN(c.ho) + ' hộ)</button>').join('') : '<div class="hint">Chưa có thành nào của bạn lớn hơn trị sở' + (G.camp ? ' (đang có chiến dịch)' : '') + '.</div>'); }
   if (G.rank >= 2) h += '<h3>Lãnh thổ</h3><div class="hint">Trị sở: ' + LT.CITY_LEVELS[G.seatLvl].n + ' (tối đa ' + LT.fmtN(LT.CITY_LEVELS[G.seatLvl].cap) + ' hộ) · ' + (LT.mineCount(G) - 1) + ' thành thuộc quyền (xem 🗺️ Thiên hạ → Thành của bạn) · Chính danh <b>' + Math.round(G.chinhdanh) + '</b> (trần dân tâm của Vương trở lên = 50 + Chính danh ÷ 2 = ' + Math.round(50 + G.chinhdanh / 2) + ')' + (G.eraName ? ' · niên hiệu "' + esc(G.eraName) + '"' : '') + '.</div>';
   return h;
 }
@@ -111,6 +112,7 @@ ACT.payQuota = () => { const p = LT.payQuota(G); toast(p > 0 ? 'Đã nộp bù '
 ACT.bocao = el => { const r = LT.issueBocao(G, el.dataset.id); toast(r.ok ? 'Đã ban bố cáo' : r.err, r.ok ? 'good' : 'bad'); renderCourt(); ui(); };
 ACT.subPc = el => { G.subs[+el.dataset.i].pc = el.value; renderCourt(); };
 ACT.subNop = el => { G.subs[+el.dataset.i].nop = +el.value; renderCourt(); };
+ACT.relocate = el => { const id = +el.dataset.id, c = G.world.cities[id]; if (!confirm('Dời trị sở sang ' + c.n + '? Bản đồ xây tay sẽ chuyển sang thành đó; thành cũ thành bảng số liệu.')) return; const r = LT.relocate(G, id); if (!r.ok) { toast(r.err, 'bad'); return; } closeModal(); afterRelocate(); toast('Đã dời trị sở sang ' + r.to + ' (' + LT.fmtN(r.ho) + ' hộ)', 'good'); };
 ACT.goPromo = () => { const p = LT.promotion(G); if (!p || !p.ready) { toast('Chưa đủ điều kiện', 'bad'); return; } if (G.rank >= 4) { openCourt('quanlo'); return; } LT.promote(G); buildBar(); closeModal(); ui(); };
 ACT.goPath = el => { const ok = LT.promote(G, { path: el.dataset.p }); if (!ok) { toast('Chưa đủ điều kiện cho con đường này', 'bad'); return; } buildBar(); closeModal(); ui(); };
 ACT.goEmperor = () => { const nm = ($('inEra') && $('inEra').value) || 'Thiên Hựu'; if (!LT.proclaim(G, nm)) { toast('Chưa đủ điều kiện xưng đế', 'bad'); return; } buildBar(); closeModal(); ui(); };
@@ -152,20 +154,13 @@ function renderLedger(first) {
 }
 
 // ============================== THIÊN HẠ ========================================================
-function openWorld(sel, tab) { UI.panel = 'world'; if (tab) UI.tab.world = tab; UI.tab.world = UI.tab.world || 'nuoc'; UI.natSel = sel != null ? sel : (UI.natSel != null ? UI.natSel : LT.NATIONS[G.nation].adj[0]); UI.gift = UI.gift || 0; renderWorld(true); }
+function openWorld(sel, tab) { UI.panel = 'world'; UI.mv = UI.mv || {}; if (tab) UI.tab.world = tab; UI.tab.world = UI.tab.world || 'nuoc'; UI.natSel = sel != null ? sel : (UI.natSel != null ? UI.natSel : LT.NATIONS[G.nation].adj[0]); UI.gift = UI.gift || 0; renderWorld(true); }
 ACT.worldTab = el => { UI.tab.world = el.dataset.t; renderWorld(); };
 ACT.selNat = el => { UI.natSel = +el.dataset.id; renderWorld(); };
 ACT.setGift = el => { UI.gift = +el.dataset.v; renderWorld(); };
 function renderWorld(first) {
   const w = G.world, NT = LT.NATIONS, sel = UI.natSel, n = NT[sel];
-  let svg = '<svg class="mapsvg" viewBox="0 0 520 480">';
-  for (const a of NT) for (const j of a.adj) if (a.id < j) { const b = NT[j]; svg += '<line x1="' + a.x * 520 + '" y1="' + a.y * 480 + '" x2="' + b.x * 520 + '" y2="' + b.y * 480 + '" stroke="#7d9a7a55" stroke-width="2"/>'; }
-  for (const a of NT) {
-    const ns = w.ns[a.id], x = a.x * 520, y = a.y * 480, r = 9 + Math.sqrt(ns.cities) * 3.3, rel = w.rel[a.id];
-    const ring = a.id === G.nation ? '#f2e08a' : rel >= 30 ? '#8fd47a' : rel >= -10 ? '#e3c25e' : '#e0705f';
-    svg += '<g data-act="selNat" data-id="' + a.id + '" style="cursor:pointer;opacity:' + (ns.alive ? 1 : .35) + '"><circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="' + a.col + '" stroke="' + ring + '" stroke-width="' + (a.id === sel ? 5 : 3) + '"/>' + (a.id === G.nation ? '<text x="' + x + '" y="' + (y + 5) + '" text-anchor="middle" font-size="15" fill="#fff6c8">★</text>' : '<text x="' + x + '" y="' + (y + 4) + '" text-anchor="middle" font-size="11" fill="#fff" font-weight="700">' + ns.cities + '</text>') + '<text x="' + x + '" y="' + (y + r + 13) + '" text-anchor="middle" font-size="12" fill="#eadcb7" style="font-family:Segoe UI,sans-serif">' + esc(LT.natName(G, a.id)) + '</text></g>';
-  }
-  svg += '</svg>';
+  const svg = zoomMapHTML('nmap', 520, 480, natMapInner(mvGet('nmap').z), 440);
   const ns = w.ns[sel], self = sel === G.nation;
   let det = '<h3 style="margin-top:0">' + esc(LT.natName(G, sel)) + (self ? ' <span class="tag y">nước của bạn</span>' : '') + (ns.alive ? '' : ' <span class="tag r">đã bị diệt</span>') + '</h3>';
   det += '<div class="hint">Kinh đô ' + n.cap + ' · <b>' + ns.cities + '</b> thành (lúc đầu ' + n.cities + ') · độ khó <b>' + n.diff + '</b> · tính cách <b>' + n.chr + '</b> (' + LT.NATION_CHR[n.chr] + ')</div>';
@@ -187,7 +182,8 @@ function renderWorld(first) {
   const body = '<div class="grid2" style="grid-template-columns:1.05fr 1fr"><div>' + svg + '<div class="hint" style="margin-top:4px">Số trong vòng tròn = số thành · viền xanh/vàng/đỏ = quan hệ với bạn · bấm vào một nước để xem. Tổng còn <b>' + LT.countCities(G) + '</b> thành.</div></div><div>' + det + '</div></div><h3>Biên niên thiên hạ</h3>' + chron;
   const wt = UI.tab.world || 'nuoc', inner = wt === 'nuoc' ? body : wt === 'thanh' ? worldCityMap() : wt === 'cua' ? worldMine() : worldCamp();
   const html = shell('🗺️ Thiên hạ', [['nuoc', '🌏 12 nước & ngoại giao'], ['thanh', '🏯 Bản đồ ' + G.world.cities.length + ' thành'], ['cua', '🏛️ Thành của bạn (' + (LT.mineCount(G) - 1) + ')'], ['chien', '⚔️ Chiến dịch' + (G.camp ? ' ●' : '')]], wt, 'worldTab', inner);
-  if (first || !modalOpen() || UI.panel !== 'world') openModal(html, 'wide'); else setModal(html);
+  if (first || !modalOpen() || UI.panel !== 'world') openModal(html, 'wide xw'); else setModal(html);
+  bindWorldMaps();
 }
 ACT.giftOnly = () => { const r = LT.sendGift(G, UI.natSel, UI.gift || 1); toast(r.ok ? r.text : r.err, r.ok ? 'good' : 'bad'); renderWorld(); ui(); };
 ACT.cutRel = () => { const r = LT.breakRelations(G, UI.natSel); toast(r.ok ? r.text : r.err, r.ok ? '' : 'bad'); renderWorld(); };
@@ -253,6 +249,10 @@ function showKhao(rec) {
   openModal(h, 'mid', false);
 }
 ACT.khaoDone = () => { closeModal(); };
+function showNotice() {
+  const n = G.pendingNotice; G.pendingNotice = null; G.speed = 0;
+  openModal('<div style="text-align:center"><div style="font-size:48px">⚠️</div><h2>' + esc(n.title) + '</h2></div><p>' + esc(n.text) + '</p><div style="text-align:center"><button class="btn" data-act="close">Đã rõ</button></div>', '', false);
+}
 function showPromo() {
   const p = G.pendingPromo; G.pendingPromo = null; G.speed = 0;
   openModal('<div style="text-align:center"><div style="font-size:52px">' + (p.rank === 3 ? '👑' : '🎖️') + '</div><h2>Thăng ' + LT.RANKS[p.rank].n + '!</h2><p>' + esc(p.text) + '</p><button class="btn" data-act="close">Nhận chức</button></div>', '', false);

@@ -17,7 +17,7 @@ LT.bigSide = function (G, name, total, natId, opt) {
     const r = LT.rand(G); let type;
     if (i < 2 || r < .34) type = r < .6 ? 'truongthuong' : 'daothuan'; else if (r < .34 + cav) type = r < .34 + cav * .45 ? 'trongky' : 'khinhky'; else type = r < .85 ? 'cung' : 'no';
     if (i === 0) type = 'daothuan'; if (i === 1) type = 'truongthuong';
-    comp.push({ type, n: Math.max(30, Math.round(per * (.85 + LT.rand(G) * .3))), hl: Math.round(opt.hl || 48 + Math.min(20, yrs * .6) + LT.rand(G) * 18), sk: Math.round(opt.sk || 60 + LT.rand(G) * 12), tb: opt.tb || (yrs > 15 ? 3 : 2) });
+    comp.push({ type, n: Math.max(30, Math.round(per * (.85 + LT.rand(G) * .3))), hl: Math.round(opt.hl || 40 + Math.min(25, yrs * .9) + LT.rand(G) * 14), sk: Math.round(opt.sk || 58 + LT.rand(G) * 12), tb: opt.tb || (yrs > 20 ? 3 : yrs > 8 ? 2 : 1) });
   }
   const chief = { name: 'Đại tướng ' + name, tong: Math.round(55 + LT.rand(G) * 28), tri: Math.round(52 + LT.rand(G) * 30) };
   const s = LT.aiSide(name, comp, chief, { wall: opt.wall || 0, camcu: !!opt.camcu });
@@ -111,7 +111,13 @@ LT.campTargets = function (G) {
   for (const c of cs) if (c.mine) for (const di of c.adj) { const d = cs[di]; if (!d.mine && d.own !== 12 && w.ns[d.own].alive && !set.has(d.id) && (G.indep || d.own !== G.nation)) set.set(d.id, d); }
   return [...set.values()];
 };
-LT.muster = (G, c) => Math.round(Math.min(LT.natField(G, c.own) * (c.capital ? .7 : c.lvl >= 3 ? .4 : c.lvl === 2 ? .2 : .12) * 3, Math.max(300, LT.campArmy(G) * (c.capital ? 1.25 : c.lvl >= 3 ? 1.0 : c.lvl === 2 ? .85 : .7)))); // địch dốc quân tương xứng với đạo quân đang kéo tới, tối đa theo quân dã chiến của họ // quân dã chiến địch sẽ ra đón đánh khi thành bị tấn công
+LT.musterOld = (G, c) => Math.round(Math.min(LT.natField(G, c.own) * (c.capital ? .7 : c.lvl >= 3 ? .4 : c.lvl === 2 ? .2 : .12) * 3, Math.max(300, LT.campArmy(G) * (c.capital ? 1.25 : c.lvl >= 3 ? 1.0 : c.lvl === 2 ? .85 : .7)))); // địch dốc quân tương xứng với đạo quân đang kéo tới, tối đa theo quân dã chiến của họ // quân dã chiến địch sẽ ra đón đánh khi thành bị tấn công
+LT.muster = function (G, c) { // quân địch ra đón; thành lớn bị đánh nghiêm trọng thì dốc phần lớn quân dã chiến quyết chiến
+  const field = LT.natField(G, c.own), a = LT.campArmy(G), major = c.capital || c.lvl >= 3;
+  if (major && a >= .35 * field) return Math.round(field * .9);
+  const frac = major ? .5 : c.lvl === 2 ? .22 : .12;
+  return Math.round(Math.min(field * frac * 3, Math.max(300, a * (c.capital ? 1.1 : c.lvl >= 3 ? .85 : c.lvl === 2 ? .65 : .5))));
+};
 LT.campArmy = G => LT.usableUnits(G).reduce((a, u) => a + u.n, 0);
 LT.campAvail = function (G, tid) {
   const c = G.world.cities[tid]; if (G.rank < 3) return 'Cần chức Phòng ngự sứ để được xuất quân';
@@ -119,6 +125,7 @@ LT.campAvail = function (G, tid) {
   if (G.pendingBattle) return 'Đang có trận chưa xong';
   if (!LT.campTargets(G).some(x => x.id === tid)) return 'Thành này không giáp thành của bạn';
   if (LT.campArmy(G) < Math.max(100, c.gar * .5)) return 'Quân dã chiến quá ít (cần ≥ ' + Math.max(100, Math.round(c.gar * .5)) + ')';
+  const lg = LT.logistics(G, tid); if (!lg.okMarch) return 'Lương chỉ nuôi được ' + Math.round(lg.weeks) + ' tuần, chưa đủ cho ' + lg.march + ' tuần hành quân (xem mục Hậu cần)';
   return '';
 };
 LT.startCampaign = function (G, tid) {
@@ -131,12 +138,21 @@ LT.startCampaign = function (G, tid) {
   if (rel > 10 && !(G.indep && c.own === G.nation)) { G.player.tin = clamp(G.player.tin - 10, 0, 100); G.chinhdanh = clamp(G.chinhdanh - 3, 0, 100); G.stat.dantam = clamp(G.stat.dantam - 2, 0, 100); notes.push('Vô cớ xuất binh: Tín −10, Chính danh −3, dân tâm −2.'); }
   else if (rel < -25) notes.push('Báo thù: danh nghĩa bình thường.'); else notes.push('Đòi đất cũ: danh nghĩa bình thường.');
   w.rel[c.own] = clamp(w.rel[c.own] - 12, -100, 100);
-  G.camp = { target: tid, nation: c.own, from: from.id, left: weeks, weeks, phase: 'march', siege: null, started: G.tick, starve: 0, lastDohang: -9, name: c.n };
+  G.camp = { startN: LT.campArmy(G), target: tid, nation: c.own, from: from.id, left: weeks, weeks, phase: 'march', siege: null, started: G.tick, starve: 0, lastDohang: -9, name: c.n };
   LT.log(G, 'Xuất quân đánh ' + c.n + ' của ' + LT.natName(G, c.own) + ' (hành quân ' + weeks + ' tuần). ' + notes.join(' '), '');
   LT.addChron(G, 'Bạn xuất quân (' + LT.fmtN(LT.campArmy(G)) + ' lính) đánh ' + c.n + ' của ' + LT.natName(G, c.own) + '.');
   return { ok: true, weeks };
 };
-LT.endCampaign = function (G, why) { if (!G.camp) return; LT.log(G, 'Chiến dịch ' + G.camp.name + ' kết thúc (' + why + ').', why === 'hạ thành' ? 'good' : ''); G.camp = null; };
+LT.endCampaign = function (G, why) {
+  if (!G.camp) return; const camp = G.camp;
+  LT.log(G, 'Chiến dịch ' + camp.name + ' kết thúc (' + why + ').', why === 'hạ thành' ? 'good' : '');
+  if (why === 'đói' || why === 'bại trận') {
+    const lost = Math.max(0, (camp.startN || 0) - LT.campArmy(G));
+    G.pendingNotice = { title: why === 'đói' ? 'Chiến dịch tan vì đói' : 'Chiến dịch thất bại', text: why === 'đói' ? 'Đạo quân đánh ' + camp.name + ' thiếu lương quá ' + camp.starve + ' tuần liền: sĩ khí sụp đổ, lính đào ngũ hàng loạt. Quân bạn từ ' + LT.fmtN(camp.startN || 0) + ' còn ' + LT.fmtN(LT.campArmy(G)) + ' (mất ' + LT.fmtN(lost) + '). Lần sau kiểm tra mục Hậu cần trước khi xuất quân: tồn lương các thành dọc đường tiếp tế, và bật 🌾 điều lương.' : 'Đại quân bại trận trước ' + camp.name + ': quân từ ' + LT.fmtN(camp.startN || 0) + ' còn ' + LT.fmtN(LT.campArmy(G)) + ' (mất ' + LT.fmtN(lost) + '), uy vọng tụt. Xem chiến báo để rút kinh nghiệm: trận hình, đơn vị tàn, địa hình.' };
+    G.speed = 0;
+  }
+  G.camp = null;
+};
 LT.retreatCampaign = function (G) {
   if (!G.camp) return { ok: false, err: 'Không có chiến dịch' };
   for (const u of LT.usableUnits(G)) u.sk = clamp(u.sk - 8, 0, 100); G.player.uyvong = clamp(G.player.uyvong - 2, 0, 100);
@@ -192,7 +208,7 @@ LT.campWeek = function (G) {
   const n = LT.campArmy(G), farm = 1 + .06 * LT.hopsToSeat(G, camp.target), need = LT.armyDemandWeek(G) * (farm - 1);
   // tiếp tế: đường dài hao thêm 6% mỗi chặng; thiếu lương thì sĩ khí −15 mỗi tuần và lính đào ngũ (GP §9.3)
   const extra = Math.min(G.res.luong, need); G.res.luong -= extra; LT.flowAdd(G, 'luong', -extra, 'Hao hụt đường tiếp tế chiến dịch');
-  if (G.armyUnpaid > 0 || (G.res.luong + G.dan.luong < LT.armyDemandWeek(G))) { camp.starve++; for (const u of LT.usableUnits(G)) { u.sk = clamp(u.sk - 15, 0, 100); const d = Math.ceil(u.n * .03); u.n = Math.max(1, u.n - d); LT.soldiersDied(G, u, d); } if (camp.starve === 1) LT.log(G, 'Quân chiến dịch thiếu lương: sĩ khí −15 mỗi tuần, lính đào ngũ!', 'bad'); } else camp.starve = 0;
+  if (G.foodShort) { camp.starve++; for (const u of LT.usableUnits(G)) { u.sk = clamp(u.sk - 15, 0, 100); const d = Math.ceil(u.n * .03); u.n = Math.max(1, u.n - d); LT.soldiersDied(G, u, d); } if (camp.starve === 1) LT.log(G, 'Quân chiến dịch thiếu lương: sĩ khí −15 mỗi tuần, lính đào ngũ!', 'bad'); } else camp.starve = 0;
   if (camp.starve >= 4) { LT.log(G, 'Quân đói rã, chiến dịch đành bỏ dở.', 'bad'); LT.endCampaign(G, 'đói'); return; }
   if (camp.phase === 'march') {
     camp.left--;

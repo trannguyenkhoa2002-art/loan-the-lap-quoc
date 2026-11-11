@@ -21,7 +21,7 @@ function armyQuan() {
     h += '<tr><td data-tip="' + esc('<b>' + d.n + '</b> Công ' + d.cong + ' · Thủ ' + d.thu + '<br>' + d.d) + '"><b>' + d.i + ' ' + d.n + '</b>' + (u.tan > 0 ? '<span class="tag y">tân binh · luyện còn ' + Math.ceil(u.tan) + ' tuần</span>' : '') + (u.from != null ? '<div class="hint">từ ' + esc(G.world.cities[u.from].n) + '</div>' : '') + '</td><td class="r">' + Math.round(u.n) + '</td><td style="width:110px">' + bar(u.hl, 100, colorOf(u.hl, 100)) + '<span class="hint">' + Math.round(u.hl) + '</span></td><td style="width:110px">' + bar(u.sk, 100, colorOf(u.sk, 100)) + '<span class="hint">' + Math.round(u.sk) + '</span></td><td class="r">cấp ' + u.tb + '</td><td class="r"><button class="btn2" data-act="reinf" data-id="' + u.id + '" data-tip="Bổ sung tối đa +' + Math.min(LT.unitCap(G) - u.n, 50) + ' lính">➕</button> <button class="btn2" data-act="equip" data-id="' + u.id + '" data-tip="Nâng trang bị lên cấp ' + (u.tb + 1) + ': ' + LT.costTxt(ec) + ' (mỗi cấp +8% Công và Thủ)">⬆ Trang bị</button> <button class="btn2" data-act="disch" data-id="' + u.id + '" data-tip="Giải ngũ: lính về làm lưu dân">✖</button></td></tr>';
   }
   if (!G.units.length) h += '<tr><td colspan="6" class="mut">Chưa có quân. Dựng Quân doanh rồi mộ quân bên dưới.</td></tr>';
-  h += '</table><h3>Mộ quân mới — dân → tân binh → quân</h3>';
+  h += '</table><div style="margin-top:6px"><button class="btn2" data-act="mergeU" data-tip="Gộp các đơn vị tàn cùng binh chủng và cùng nguồn dân thành đơn vị đầy hơn (tối đa ' + LT.unitCap(G) + ' lính)">🧩 Gộp đơn vị tàn</button></div><h3>Mộ quân mới — dân → tân binh → quân</h3>';
   const sel = UI.recType || 'truongthuong', cnt = UI.recN || Math.min(50, LT.unitCap(G)), from = UI.recFrom != null && G.world.cities[UI.recFrom] && G.world.cities[UI.recFrom].mine && UI.recFrom !== G.seatId ? UI.recFrom : null, many = UI.recK || 1;
   const m = LT.month(G.week), busy = m <= 2 || m === 9;
   h += '<div class="grid2"><div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><select class="sel" data-chg="recType">' + LT.UNIT_IDS.map(k => '<option value="' + k + '"' + (k === sel ? ' selected' : '') + '>' + U_[k].i + ' ' + U_[k].n + (U_[k].rank > G.rank ? ' (cần ' + LT.RANKS[U_[k].rank].n + ')' : '') + '</option>').join('') + '</select>';
@@ -111,19 +111,22 @@ function enemyHeader(pb) {
 }
 function practiceCfg() {
   const tmp = { rs: (UI.pracSeed = UI.pracSeed || 777), year: G.year, rank: G.rank, week: G.week, nation: G.nation };
-  const total = UI.pracTotal || Math.max(60, Math.round(LT.raidSize(G) * .9));
-  const comp = LT.makeComp(tmp, total, 'giac'); const chief = { name: 'Thủ lĩnh', tong: 45, tri: 45 };
-  const e = LT.aiSide('Giặc cỏ (diễn tập)', comp, chief, {}); e.form = UI.pracForm || 'phuong';
-  const mine = LT.buildPlayerSide(G, G.formation);
+  const mine = LT.buildPlayerSide(G, G.formation), my = LT.sideN(mine), sc = UI.pracScale || 1;
+  const total = Math.max(60, Math.round(my > 0 ? my * sc : LT.raidSize(G) * .9));
+  const chief = { name: 'Thủ lĩnh', tong: 45, tri: 45 };
+  const e = total > 1500 ? LT.bigSide(tmp, 'Địch diễn tập', total, null, {}) : LT.aiSide('Giặc cỏ (diễn tập)', LT.makeComp(tmp, total, 'giac'), chief, {});
+  e.form = UI.pracForm || 'phuong';
   const terrain = UI.pracTerrain || 'dongbang';
-  return { A: mine, B: e, terrain, holder: terrain === 'doi' ? 'B' : null, nameA: G.name, nameB: 'Giặc (diễn tập)', _practice: true, enemy: e };
+  return { A: mine, B: e, terrain, holder: terrain === 'doi' ? 'B' : null, nameA: G.name, nameB: 'Địch (diễn tập)', _practice: true, enemy: e };
 }
 function practiceBar() {
   const cfg = practiceCfg();
-  let h = '<h3>Diễn tập sa bàn (không ảnh hưởng thành)</h3><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><label class="hint">Địa hình: <select class="sel" data-chg="pracTer">' + Object.keys(LT.TERRAINS).map(k => '<option value="' + k + '"' + ((UI.pracTerrain || 'dongbang') === k ? ' selected' : '') + '>' + LT.TERRAINS[k].n + '</option>').join('') + '</select></label><label class="hint">Trận hình địch: <select class="sel" data-chg="pracForm">' + LT.FORM_IDS.map(k => '<option value="' + k + '"' + ((UI.pracForm || 'phuong') === k ? ' selected' : '') + '>' + LT.FORMATIONS[k].n + '</option>').join('') + '</select></label><span class="hint">Địch ~' + Math.round(LT.sideTotal(cfg.B)) + ' quân (' + LT.sideUnits(cfg.B).map(u => U_[u.type].n + ' ' + u.n).join(', ') + ')</span><button class="btn" data-act="practiceRun">▶ Diễn tập trận này</button>';
+  let h = '<h3>Diễn tập sa bàn (không ảnh hưởng thành)</h3><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><label class="hint">Địa hình: <select class="sel" data-chg="pracTer">' + Object.keys(LT.TERRAINS).map(k => '<option value="' + k + '"' + ((UI.pracTerrain || 'dongbang') === k ? ' selected' : '') + '>' + LT.TERRAINS[k].n + '</option>').join('') + '</select></label><label class="hint">Quân địch so với quân ta: <select class="sel" data-chg="pracScale">' + [[.5, '0,5×'], [1, '1×'], [1.5, '1,5×']].map(x => '<option value="' + x[0] + '"' + ((UI.pracScale || 1) === x[0] ? ' selected' : '') + '>' + x[1] + '</option>').join('') + '</select></label><label class="hint">Trận hình địch: <select class="sel" data-chg="pracForm">' + LT.FORM_IDS.map(k => '<option value="' + k + '"' + ((UI.pracForm || 'phuong') === k ? ' selected' : '') + '>' + LT.FORMATIONS[k].n + '</option>').join('') + '</select></label><span class="hint">Địch ~' + Math.round(LT.sideTotal(cfg.B)) + ' quân (' + LT.sideUnits(cfg.B).map(u => U_[u.type].n + ' ' + u.n).join(', ') + ')</span><button class="btn" data-act="practiceRun">▶ Diễn tập trận này</button>';
   h += '<button class="btn2" data-act="tieuphi" data-tip="Đi đánh sơn trại thật: thắng có quân công, chiến lợi phẩm; thua tổn hại uy vọng.">🏹 Tiễu phỉ thật' + (G.cdTieuphi > 0 ? ' (chờ ' + G.cdTieuphi + ' tuần)' : '') + '</button></div>';
   return h;
 }
+ACT.pracScale = el => { UI.pracScale = +el.value; rerenderWar(); };
+ACT.mergeU = () => { const n = LT.mergeUnits(G); toast(n ? 'Đã gộp ' + n + ' đơn vị tàn' : 'Không có đơn vị tàn cùng loại để gộp', n ? 'good' : ''); renderArmy(); ui(); };
 ACT.pracTer = el => { UI.pracTerrain = el.value; rerenderWar(); };
 ACT.pracForm = el => { UI.pracForm = el.value; rerenderWar(); };
 ACT.practiceRun = () => { const cfg = practiceCfg(); if (!LT.sideTotal(cfg.A)) { toast('Chưa xếp quân nào vào trận', 'bad'); return; } const rep = LT.runBattle(cfg, Math.floor(Math.random() * 1e9)); rep.title = 'Diễn tập sa bàn'; rep.kind = 'practice'; rep.outcome = { lines: ['Đây chỉ là diễn tập: không có thương vong thật, không cướp phá, không chiến lợi phẩm.'] }; showBattleReport(rep, true); };

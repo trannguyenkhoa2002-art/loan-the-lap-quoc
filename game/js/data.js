@@ -294,6 +294,7 @@ LT.TREATIES = {
   xungthan: { n: 'Xưng thần – sách phong', th: 40, rank: 3, d: 'Triều cống hằng năm, đổi lấy che chở và danh nghĩa.' },
 };
 
+LT.CITY_LEVS_TXT = c => 'trần ' + LT.fmtN(LT.CITY_LEVELS[c.lvl].cap) + ' hộ, hiện ' + LT.fmtN(c.ho) + ' hộ (khởi đầu tối đa ' + LT.fmtN([0, 1500, 4000, 9000, 16000][c.lvl]) + ' hộ)';
 LT.clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 LT.fmtN = v => { v = Math.round(v); return Math.abs(v) >= 10000 ? (v / 1000).toFixed(1).replace('.', ',') + 'k' : String(v); };
 LT.fmt1 = v => (Math.round(v * 10) / 10).toString().replace('.', ',');

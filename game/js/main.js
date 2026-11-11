@@ -10,6 +10,7 @@ function pump() {
   if (modalOpen() && !UI.dismiss) return;
   if (G.over) { showOver(); return; }
   if (G.pendingKhao) { const r = G.pendingKhao; G.pendingKhao = null; showKhao(r); return; }
+  if (G.pendingNotice) { showNotice(); return; }
   if (G.pendingPromo) { showPromo(); return; }
   if (G.pendingEvent) { showEvent(); return; }
   if (G.pendingBattle) { showBattlePrep(); return; }
@@ -188,6 +189,12 @@ function startGame(g, isNew) {
   G.speed = 0; ui(); drawMini();
   $('start').style.display = 'none';
   if (isNew) showIntro(); else pump();
+}
+function afterRelocate() {
+  sprites.clear(); groundCache = null; hideInspect(); traffic.splice(0); WALK.length = 0; FL = [];
+  G.tool = null; G.era = Math.min(3, G.rank); paintTiles(); buildBar(); syncWalkers(); ox = 0; oy = 0; s = 1.05; layoutResize(); ox = 0; oy = 0; centerHall();
+  for (let i = 0; i < 6; i++) updateTraffic(3.1); for (let i = 0; i < 120; i++) updateTraffic(.1);
+  ui(); drawMini();
 }
 function showIntro() {
   const n = LT.NATIONS[G.nation];

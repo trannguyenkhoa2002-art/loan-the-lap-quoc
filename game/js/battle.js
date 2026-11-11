@@ -61,23 +61,26 @@ LT.sideTotal = s => LT.sideUnits(s).reduce((n, u) => n + u.n, 0);
 LT.clone = o => JSON.parse(JSON.stringify(o));
 
 // xếp trận tự động: bộ binh chắc ở giữa, cung nỏ hậu quân, kỵ binh hai cánh
-LT.autoLineup = function (units, maxSlots) {
+LT.autoLineup = function (units) {
   const L = { slots: Array(9).fill(null), reserve: [], ambush: null };
-  const list = units.filter(u => u.n > 0).slice().sort((a, b) => (U[b.type].cong + U[b.type].thu) - (U[a.type].cong + U[a.type].thu));
-  const melee = list.filter(u => U[u.type].kind === 'bo'), ky = list.filter(u => U[u.type].kind === 'ky'), xa = list.filter(u => U[u.type].kind === 'xa');
+  const list = units.filter(u => u.n > 0);
+  const val = u => u.n * (U[u.type].cong + U[u.type].thu) / 2 * (.5 + (u.hl == null ? 40 : u.hl) / 200) * (.5 + (u.sk == null ? 60 : u.sk) / 200) * (1 + .08 * ((u.tb || 1) - 1));
+  const maxN = list.reduce((m, u) => Math.max(m, u.n), 1);
+  // đơn vị tàn (dưới 30% đơn vị lớn nhất) không được đứng tuyến trước: vào dự bị, còn chỗ thì mới xuống hậu quân
+  const small = list.length > 3 ? list.filter(u => u.n < maxN * .3) : [];
+  const main = list.filter(u => small.indexOf(u) < 0).sort((p, q) => val(q) - val(p));
+  const melee = main.filter(u => U[u.type].kind === 'bo'), ky = main.filter(u => U[u.type].kind === 'ky'), xa = main.filter(u => U[u.type].kind === 'xa');
   const put = (i, u) => { if (u && L.slots[i] == null) { L.slots[i] = u.id; return true; } return false; };
-  const order = [];
-  // tiền quân: giữa, rồi hai cánh; kỵ ở cánh
-  const front = [4 - 3, 0, 2]; // 1, 0, 2
   const pool = melee.slice();
-  if (pool.length) put(1, pool.shift());
+  if (pool.length) put(1, pool.shift());                       // trung quân tiền tuyến: đơn vị mạnh nhất
   for (const i of [0, 2]) { const k = ky.shift(); if (k) put(i, k); else if (pool.length) put(i, pool.shift()); }
   for (const i of [4, 3, 5]) if (pool.length) put(i, pool.shift());
   for (const i of [7, 6, 8, 4, 3, 5]) { const x = xa.shift(); if (x) put(i, x); }
-  for (const k of ky) { for (const i of [3, 5, 6, 8]) if (put(i, k)) { ky.splice(ky.indexOf(k), 1); break; } }
-  const left = list.filter(u => !L.slots.includes(u.id));
-  for (let i = 0; i < 9 && left.length; i++) if (L.slots[i] == null) put(i, left.shift());
-  L.reserve = left.map(u => u.id);
+  for (const k of ky.slice()) { for (const i of [3, 5, 6, 8]) if (put(i, k)) { ky.splice(ky.indexOf(k), 1); break; } }
+  const left = main.filter(u => L.slots.indexOf(u.id) < 0);
+  for (const i of [1, 4, 0, 2, 3, 5, 7, 6, 8]) if (left.length && L.slots[i] == null) put(i, left.shift());
+  const rest = left.concat(small.sort((p, q) => val(q) - val(p)));
+  for (const u of rest) { if (L.reserve.length < 3) L.reserve.push(u.id); else { const i = [7, 6, 8, 3, 5].find(j => L.slots[j] == null); if (i != null) put(i, u); } }
   return L;
 };
 

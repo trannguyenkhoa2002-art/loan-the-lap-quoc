@@ -74,6 +74,17 @@ LT.discharge = function (G, id) {
   else { const c = G.world.cities[u.from]; const t = Math.min(back, c.binh); c.binh -= t; c.ho += t; }
   LT.ensureFormation(G); return true;
 };
+// gộp các đơn vị tàn cùng binh chủng và cùng nguồn dân (không thêm hộ, không tốn gì)
+LT.mergeUnits = function (G) {
+  let merged = 0; const cap = LT.unitCap(G);
+  const groups = {}; for (const u of G.units) { const k = u.type + ':' + (u.from == null ? 's' : u.from) + ':' + (u.tan > 0 ? 't' : 'r'); (groups[k] = groups[k] || []).push(u); }
+  for (const k in groups) {
+    const g = groups[k].sort((p, q) => q.n - p.n), tgt = g[0];
+    for (const u of g.slice(1)) { if (u.n < cap * .6 && tgt.n + u.n <= cap) { const t = tgt.n + u.n; tgt.hl = (tgt.hl * tgt.n + u.hl * u.n) / t; tgt.sk = (tgt.sk * tgt.n + u.sk * u.n) / t; tgt.tb = Math.round((tgt.tb * tgt.n + u.tb * u.n) / t); tgt.tan = Math.max(tgt.tan || 0, u.tan || 0); tgt.n = t; G.units.splice(G.units.indexOf(u), 1); merged++; } }
+  }
+  if (merged) { if (G.formation) G.formation.auto = true; LT.ensureFormation(G); }
+  return merged;
+};
 LT.soldiersDied = function (G, u, lost) {
   if (!(lost > 0)) return; const key = u.from == null ? 'seat' : u.from; G.deadAcc = G.deadAcc || {};
   G.deadAcc[key] = (G.deadAcc[key] || 0) + lost / LT.LINH_PER_HO; const k = Math.floor(G.deadAcc[key]); if (k <= 0) return; G.deadAcc[key] -= k;

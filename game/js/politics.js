@@ -131,18 +131,19 @@ LT.promote = function (G, opt) {
       LT.addChron(G, 'Bạn tự lập xưng vương, cắt đứt với triều đình ' + LT.natName(G, G.nation) + '. Nước láng giềng cũ thành kẻ thù.');
     }
   }
-  G.rank = p.to; G.era = Math.min(3, G.rank); G.rankSince = G.year; G.seatLvl = SEAT_LVL[G.rank]; G.player.thanhdanh = clamp(G.player.thanhdanh + 5, 0, 100);
+  G.rank = p.to; G.era = Math.min(3, G.rank); G.rankSince = G.year; G.player.thanhdanh = clamp(G.player.thanhdanh + 5, 0, 100);
   G.nghiky = from === 4 && G.indep ? 0 : Math.max(0, G.nghiky - 15); G.lab.budget = LT.laoDichBudget(G);
   const txt = {
-    2: 'Bạn được phong Thứ sử. Chia thuế nay: thượng cung 40% · lưu sứ 25% · giữ 35%. Châu thành (tối đa 12.000 hộ) và nhà phố 50 hộ được mở, quân tối đa 2.500, 3 huyện thuộc quyền, nỏ thủ, trọng kỵ, chuyên bán trà rượu.',
+    2: 'Bạn được phong Thứ sử. Chia thuế nay: thượng cung 40% · lưu sứ 25% · giữ 35%. Bạn nhận 1 châu thành (tối đa 12.000 hộ) và 2 huyện: hãy 🏯 DỜI TRỊ SỞ sang châu thành để xây tay ở đó (thành cũ thành bảng số liệu). Nhà phố 50 hộ được mở, quân tối đa 2.500, 3 huyện thuộc quyền, nỏ thủ, trọng kỵ, chuyên bán trà rượu.',
     3: 'Bạn được phong Phòng ngự sứ: binh quyền cả châu, quân tối đa 6.000, nhà lầu 140 hộ, đơn vị công thành. Từ nay bạn được XUẤT QUÂN: đánh chiếm thành các nước khác trong 🗺️ Thiên hạ. Muốn lên Tiết độ sứ phải giữ từ 3 châu.',
     4: 'Bạn là Tiết độ sứ: cai trị một trấn, quân tối đa 20.000 (đơn vị là quân 2.500), phủ thành tối đa 40.000 hộ, thành thuộc quyền do quan trấn nhậm cai (phương châm, luân chuyển, thanh tra). Chia thuế: giữ 70%. Con đường tiếp theo: xưng Vương.',
     5: from === 4 && G.vassal ? 'Triều đình sách phong bạn làm Vương: tự trị, ngoại giao riêng đủ mọi giao ước, đúc tiền, quân tối đa 60.000; Chính danh +25.' : 'Bạn tự lập xưng Vương, không ai phong. Triều đình cũ coi bạn là phản nghịch và sẽ tiến đánh; Chính danh −15. Được đúc tiền, ngoại giao riêng, quân tối đa 60.000.',
     6: 'Bạn xưng Hoàng đế: lập triều đình, đặt niên hiệu, quân tối đa 250.000, kinh đô tối đa 120.000 hộ, thánh chỉ. Đích cuối: giữ 90 trên 120 thành gồm kinh đô Trung Nguyên để thống nhất thiên hạ.',
   }[G.rank];
   G.pendingPromo = { rank: G.rank, text: txt };
-  if (G.rank === 2) { const c = LT.grantCities(G, 3, 1, 1); LT.log(G, 'Giao thêm ' + c.length + ' huyện thuộc quyền: ' + c.map(x => x.n).join(', ') + '.', 'good'); G.loanSince = 0; G.winsSince = 0; }
+  if (G.rank === 2) { const c = LT.grantCities(G, 1, 2, 2).concat(LT.grantCities(G, 2, 1, 1)); LT.log(G, 'Giao thêm ' + c.length + ' huyện thuộc quyền: ' + c.map(x => x.n).join(', ') + '.', 'good'); G.loanSince = 0; G.winsSince = 0; }
   if (G.rank === 3) { const c = LT.grantCities(G, 1, 2, 2); LT.log(G, c.length ? 'Triều đình giao thêm châu thành ' + c[0].n + ' dưới quyền bạn.' : 'Không còn châu nào để giao.', 'good'); G.winsSince = 0; G.loanSince = 0; }
+  if (G.rank === 4) { const c = LT.grantCities(G, 1, 3, 3); if (c.length) LT.log(G, 'Giao phủ thành ' + c[0].n + ' vào trấn của bạn: có thể dời trị sở sang đó.', 'good'); }
   if (G.rank >= 4) { G.orders.max = 4 + Math.floor(G.player.chinh / 20); }
   LT.log(G, 'THĂNG CHỨC: bạn trở thành ' + LT.RANKS[G.rank].n + '!', 'good');
   LT.computeQuota(G);
