@@ -26,6 +26,7 @@ const addDan = (G, v, label) => { const b = G.dan.luong; G.dan.luong = Math.max(
 LT.log = function (G, text, cls) { G.log.unshift({ y: G.year, w: G.week, t: text, c: cls || '' }); if (G.log.length > 120) G.log.length = 120; if (LT.onLog) LT.onLog(text, cls || ''); };
 // dòng thu đi vào ngân khố: tính vào khoản phải chia thuế ba phần
 const income = (G, v, label) => { add(G, 'tien', v, label); G.yr.rev += v; G.pend.tien += v; };
+LT.income = income;
 
 // ---- nhu cầu và giá -----------------------------------------------------------
 LT.demandWeek = function (G) {
@@ -237,7 +238,7 @@ function consume(G) {
   // thương hộ chuyên chở thuế quá cảnh (Kinh Nam…)
   const qc = natMod(G).quaCanh || 0;
   if (qc && mk) income(G, qc * .5, 'Thuế quá cảnh (ngã tư thương lộ)');
-  if (G.treaties.thongthuong.length) income(G, 1.5 * G.treaties.thongthuong.length, 'Thuế quá cảnh thông thương');
+  { const ti = LT.transitIncome ? LT.transitIncome(G) : 0; if (ti > 0) { income(G, ti, 'Thuế quá cảnh (' + Math.round(LT.t2(G).transit * 1000) / 10 + '%)'); LT.t2(G).ledger.transit += ti; } }
   G.wealth = Math.max(0, G.wealth);
 }
 
@@ -404,7 +405,7 @@ function stats(G) {
   if (G.units.length && G.armyUnpaid > 4) dtT -= 4;
   dtT = clamp(Math.min(dtT, G.rank >= 5 ? 50 + G.chinhdanh / 2 : 100), 0, 100);
   const sold = LT.armyCount(G);
-  let tT = 28 + 42 * c.watchCover + Math.min(12, sold / 25) + (st.dantam < 45 ? -(45 - st.dantam) * .4 : 0) + ((G.H.luu / Math.max(1, tot)) > .35 ? -8 : 0) + (mods.trian || 0) + (G.stat.phonvinh > 60 ? 3 : 0);
+  let tT = 28 + 42 * c.watchCover + Math.min(12, sold / 25) + (st.dantam < 45 ? -(45 - st.dantam) * .4 : 0) + ((G.H.luu / Math.max(1, tot)) > .35 ? -8 : 0) + (mods.trian || 0) + ((G.off && G.off.bonus && G.off.bonus.trian) || 0) + (G.stat.phonvinh > 60 ? 3 : 0);
   if (G.flags.unpaid) tT -= 5;
   tT = clamp(tT, 0, 100);
   const crowd = tot / Math.max(1, c.cap) > .95 ? -8 : 0;

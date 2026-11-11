@@ -4,7 +4,7 @@
 // ============================================================================
 (function (g) {
 const LT = g.LT = g.LT || {};
-const SAVE_KEY = 'loan-the-lap-quoc-v2', SAVE_KEY_OLD = 'loan-the-lap-quoc-v1', SAVE_VER = 6;
+const SAVE_KEY = 'loan-the-lap-quoc-v2', SAVE_KEY_OLD = 'loan-the-lap-quoc-v1', SAVE_VER = 8;
 
 LT.newYearLedger = () => ({ rev: 0, exp: 0, yield: 0, leave: 0, arrive: 0, thueTien: 0, thueThoc: 0, cho: 0, mono: 0, remitT: 0, remitL: 0, dueT: 0, dueL: 0, quota: 0, hoStart: 0, tbtMua: 0, tbtBan: 0, dtTBT: 0, unpaid: 0 });
 
@@ -13,13 +13,13 @@ LT.newGame = function (nation, name, seed) {
   const G = {
     ver: SAVE_VER, nation, name: name || 'Vô danh', seed: seed || 1234 + nation, rs: (seed || 1234) + nation * 977,
     rank: 1, era: 1, year: LT.START_YEAR, week: 1, tick: 0, speed: 0, acc: 0,
-    hx: 46, hy: 46, seatLvl: 1, nextId: 1, bl: [], map: [], free: {},
+    hx: 55, hy: 55, seatLvl: 1, nextId: 1, bl: [], map: [], free: {},
     res: { tien: Math.round(780 * sc * mod.tien), luong: Math.round(260 * sc * mod.luong), go: 240, da: 140, quang: 24, nongcu: 6, vai: 24, ken: 0, lua: 0, tra: 0, gom: 0, ruou: 0, binhkhi: 60, giap: 0, ngua: 0, muoi: 24 },
     dan: { luong: Math.round(620 * sc * mod.luong) },
     H: { luu: 18, nong: 82, cong: 0, thuong: 0, si: 0, tang: 0, binh: 20, quan: 3, hao: 0 },
     prosper: { binh: 50, luu: 50, nong: 55, cong: 50, thuong: 50, si: 50, tang: 50, quan: 50, hao: 50 },
     stat: { dantam: 58 + (mod.dt || 0), trian: 48, vesinh: 46, phonvinh: 34, thanhphong: 0 },
-    pol: { tax: 2, cho: 1, mono: { muoi: false, tra: false, ruou: false }, thuongbinh: false, camruou: false, laodich: 'phu', nop: 'du' },
+    off: null, trade2: null, pol: { tax: 2, cho: 1, mono: { muoi: false, tra: false, ruou: false }, thuongbinh: false, camruou: false, laodich: 'phu', nop: 'du' },
     lab: { used: 0, budget: 300, hired: 0, over: 0, busy: false },
     flow: LT.newFlow(), yr: LT.newYearLedger(), pend: { tien: 0, luong: 0 }, price: {}, sat: {}, satc: {}, trade: { cap: 0, imp: 0, exp: 0, used: 0 },
     fr: { imm: 0, birth: 0, leave: 0, mer: 0 }, flags: {}, mods: [], bocao: {}, bocaoList: [], treaties: { thongthuong: [], batxam: [], muonduong: [], hoathan: [], lienminh: [], xungthan: [] },
@@ -75,7 +75,9 @@ LT.tickWeek = function (G) {
   if (LT.armyWeek) LT.armyWeek(G);
   if (LT.politicsWeek) LT.politicsWeek(G);
   if (LT.eventsWeek) LT.eventsWeek(G);
+  if (LT.offWeek) LT.offWeek(G);
   if (LT.worldWeek) LT.worldWeek(G);
+  if (LT.tradeWeek) LT.tradeWeek(G);
   if (LT.campWeek) LT.campWeek(G);
   if (LT.checkEndings) LT.checkEndings(G);
   G.tick++; G.week++;

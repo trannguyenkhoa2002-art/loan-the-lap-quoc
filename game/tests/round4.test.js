@@ -1,6 +1,6 @@
 // Vòng 4: phát lại trận theo thời gian (kế hoạch phát lại khớp tính tức thời) và mạch quặng sắt trên mọi bản đồ.
 const path = require('path');
-for (const f of ['data', 'city', 'economy', 'game', 'battle', 'politics', 'war', 'events', 'world', 'wcities', 'campaign']) require(path.join(__dirname, '..', 'js', f + '.js'));
+for (const f of ['data', 'city', 'economy', 'game', 'battle', 'politics', 'war', 'events', 'world', 'wcities', 'campaign', 'trade', 'officials']) require(path.join(__dirname, '..', 'js', f + '.js'));
 const LT = globalThis.LT; let fails = 0;
 const ok = (c, m) => { if (!c) { fails++; console.log('  FAIL  ' + m); } else console.log('  ok    ' + m); };
 const calm = G => { G.pendingEvent = null; G.pendingBattle = null; G.raid = null; G.pendingKhao = null; G.pendingPromo = null; G.pendingNotice = null; };
@@ -32,7 +32,7 @@ console.log('--- 2. Mạch quặng sắt trên mọi bản đồ');
   let worst = 0, bad = 0, total = 0;
   for (let n = 0; n < 12; n++) for (let sn = 0; sn < 5; sn++) {
     const G = LT.newGame(n, 'Q', 100 + n); G.seatNo = sn; LT.genMap(G, n); total++;
-    let best = 1e9, cnt = 0; for (let i = 0; i < G.map.length; i++) if (G.map[i].t === 'm') { cnt++; best = Math.min(best, Math.hypot(i % 96 - G.hx, Math.floor(i / 96) - G.hy)); }
+    let best = 1e9, cnt = 0; for (let i = 0; i < G.map.length; i++) if (G.map[i].t === 'm') { cnt++; best = Math.min(best, Math.hypot(i % LT.N - G.hx, Math.floor(i / LT.N) - G.hy)); }
     const pl = LT.placeableTiles(G, 'mine'); worst = Math.max(worst, best);
     if (!cnt || best > 24 || !pl.length) { bad++; console.log('   nước ' + n + ' trị sở #' + sn + ': mạch ' + cnt + ', gần nhất ' + best + ', ô đặt được ' + pl.length); }
   }

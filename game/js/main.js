@@ -83,7 +83,7 @@ function step(dt) {
 }
 function frame(now) {
   const dt = Math.min(.1, (now - lastT) / 1000); lastT = now; requestAnimationFrame(frame);
-  step(dt); draw();
+  step(dt); keyPan(dt); draw();
 }
 function layoutResize() {
   DPR = Math.min(2, window.devicePixelRatio || 1);
@@ -166,13 +166,27 @@ $('m-court').onclick = () => G && openCourt();
 $('m-army').onclick = () => G && openArmy();
 $('m-world').onclick = () => G && openWorld();
 $('m-ledger').onclick = () => G && openLedger();
+$('m-trade').onclick = () => G && openTrade();
+$('m-off').onclick = () => G && openOfficials();
 $('m-menu').onclick = () => G && openMenu();
 document.querySelectorAll('.spd').forEach(b => { b.onclick = () => { if (!G) return; G.speed = +b.dataset.spd; ui(); }; });
 $('b-pause').onclick = () => { if (!G) return; G.speed = G.speed === 0 ? 1 : 0; ui(); };
 $('b-step').onclick = () => { if (!G || blocking()) return; G.speed = 0; advanceBuilding(LT.WEEK_SECONDS); updateTraffic(LT.WEEK_SECONDS * .3); doWeek(); };
 
+// ---- WASD / mũi tên: trượt khung nhìn (Shift nhanh hơn); không chạy khi đang gõ chữ; thả phím hoặc mất tiêu điểm thì dừng ----
+const KEYS = new Set(), PANK = { KeyW: 'u', ArrowUp: 'u', KeyS: 'd', ArrowDown: 'd', KeyA: 'l', ArrowLeft: 'l', KeyD: 'r', ArrowRight: 'r' };
+const typing = t => !!(t && t.matches && t.matches('input,textarea,select,[contenteditable]'));
+addEventListener('keydown', e => { if (typing(e.target) || e.ctrlKey || e.metaKey || e.altKey) return; const d = PANK[e.code]; if (d) { KEYS.add(d); if (e.shiftKey) KEYS.add('fast'); else KEYS.delete('fast'); if (G && (!modalOpen() || document.querySelector('#mBox svg.mapsvg'))) e.preventDefault(); } });
+addEventListener('keyup', e => { const d = PANK[e.code]; if (d) KEYS.delete(d); if (!e.shiftKey) KEYS.delete('fast'); });
+addEventListener('blur', () => KEYS.clear()); document.addEventListener('visibilitychange', () => KEYS.clear());
+function keyPan(dt) {
+  if (!KEYS.size || !G) return; const dx = (KEYS.has('r') ? 1 : 0) - (KEYS.has('l') ? 1 : 0), dy = (KEYS.has('d') ? 1 : 0) - (KEYS.has('u') ? 1 : 0); if (!dx && !dy) return;
+  const n = Math.hypot(dx, dy), fast = KEYS.has('fast') ? 2.4 : 1;
+  if (modalOpen()) { const sv = document.querySelector('#mBox svg.mapsvg'); const m = sv && MAPS[sv.id]; if (m && m.pan) { const v = UI.mv[sv.id], sp = .45 * fast / Math.max(1, v.z); m.pan(dx / n * sp * dt, dy / n * sp * dt); } return; }
+  const sp = 520 * Math.max(.5, s) * fast; ox -= dx / n * sp * dt; oy -= dy / n * sp * dt; hover = null;
+}
 addEventListener('keydown', e => {
-  if (e.target && e.target.matches && e.target.matches('input,textarea,select')) return;
+  if (typing(e.target)) return;
   if (e.key === 'Escape') { if (modalOpen() && UI.dismiss) closeModal(); else if (G) { G.tool = null; hideInspect(); ui(); } return; }
   if (!G || modalOpen()) return;
   const k = e.key.toLowerCase();
@@ -180,7 +194,7 @@ addEventListener('keydown', e => {
   else if (k === '1') { G.speed = 1; ui(); } else if (k === '2') { G.speed = 2; ui(); } else if (k === '3') { G.speed = 4; ui(); }
   else if (k === 'h') centerHall(); else if (k === 'g') $('grid-toggle').onclick();
   else if (k === '+' || k === '=') zoom(1.12, W / 2, H / 2); else if (k === '-') zoom(1 / 1.12, W / 2, H / 2);
-  else if (k === 't') openCourt(); else if (k === 'q') openArmy(); else if (k === 'w') openWorld(); else if (k === 's') openLedger();
+  else if (k === 't') openCourt(); else if (k === 'q') openArmy(); else if (k === 'e') openWorld(); else if (k === 'l') openLedger(); else if (k === 'b') openTrade(); else if (k === 'v') openOfficials();
 });
 addEventListener('beforeunload', () => { try { if (G && !G.over) LT.saveSlot(G, 'auto'); } catch (e) { } });
 

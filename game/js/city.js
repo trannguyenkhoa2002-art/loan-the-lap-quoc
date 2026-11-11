@@ -5,7 +5,7 @@
 // ============================================================================
 (function (g) {
 const LT = g.LT = g.LT || {};
-const N = LT.N = 96;                // vòng 2: lưới 96×96 (gấp 4 diện tích; GP §5.1 ghi 48×48)
+const N = LT.N = 110;               // vòng 5: lưới 110×110 (rộng thêm ~30% so với 96×96)
 const B = LT.B;
 
 // ---- số ngẫu nhiên có hạt giống (lưu được trong G.rs) --------------------------

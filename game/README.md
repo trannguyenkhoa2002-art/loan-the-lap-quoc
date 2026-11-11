@@ -86,3 +86,11 @@ Kiểm thử: `node tests/battle.test.js`, `sim.test.js`, `war2.test.js`, `round
 
 - **Trận đánh phát lại theo thời gian** (`js/ui-replay.js`): thanh giằng co hai màu (ta vàng, địch đỏ), ranh giới = sức chiến đấu còn lại (quân số × sĩ khí của đơn vị chưa vỡ) của từng hiệp, ba thanh cánh Tả/Trung/Hữu, lưới 3×3 hai bên, nhật ký sự kiện; tạm dừng, x1/x2/x4, Bỏ qua, tùy chọn "Luôn bỏ qua trận nhỏ" (dưới 3.000 quân, nhớ trong localStorage). Trận đã được tính và áp dụng vào ván trước khi phát nên kết quả và số liệu không đổi; xong bấm "Xem chiến báo" để sang chiến báo chi tiết. Áp dụng cho giặc, dã chiến, công thành, diễn tập.
 - **Mỏ sắt**: nguyên nhân thật là lỗi sinh bản đồ (khối tài nguyên dùng bán kính lẻ nên gần như không có rừng/đá/đồi/quặng nào được tạo ra: mỗi bản đồ 0 ô quặng, chỉ ~38 ô rừng). Đã sửa, thêm hai mạch quặng bảo đảm quanh trị sở, ô quặng vẽ đỏ gỉ lấp lánh, nút Mỏ sắt chuyển sang nhóm Thủ công, đặt công trình cần địa hình thì sáng các ô đặt được và có nút "Tới chỗ đặt gần nhất", cảnh báo khi Lò rèn thiếu quặng. Bản lưu phiên bản 5 không còn tương thích (SAVE_VER 6).
+
+## Vòng 5
+
+- **Bản đồ thành 110×110** (rộng thêm ~30%): mọi chỗ theo hằng `LT.N` (sinh địa hình, mạch quặng bảo đảm, bản đồ nhỏ, bản đồ sau khi dời trị sở). Bản lưu phiên bản 8; bản cũ bị từ chối kèm thông báo.
+- **WASD / mũi tên** trượt bản đồ (Shift nhanh, đi chéo, tốc độ theo thu phóng; bản đồ 120 thành khi đang mở cũng trượt; không chạy khi gõ chữ). Phím tắt bảng đổi: T Triều chính, Q Quân vụ, E Thiên hạ, L Sổ sách, B Giao thương, V Quan viên.
+- **Giao thương** (`js/trade.js`, `js/ui-trade.js`): mua bán trực tiếp ở chợ, thương đội (đường bộ, hải thương, thuế quá cảnh các thành đi qua, hao đường, cướp, cấm vận), đặc sản/thiếu hụt theo vùng, thương lộ nội bộ, thuế quá cảnh chỉnh được, cấp phường thị, Bến cảng.
+- **Quan viên tự quản** (`js/officials.js`, `js/ui-off.js`): nhân vật thật (Thống/Võ/Trí/Chính/Đức, trung thành, dã tâm, liêm–tham ẩn, đặc tính, bổng lộc), 6 nguồn tuyển, bổ nhiệm/bãi miễn/luân chuyển, bổ nhiệm nhanh, chức ở trị sở, quan tự phát triển/mộ quân/xử biến cố, nhật ký, khảo khóa, nhiệm kỳ, hồi tỵ, ngự sử thanh tra, ly khai.
+- Kiểm thử: `tests/round5.test.js`; bot không gian lận: Vương năm 943, Hoàng đế năm 946.

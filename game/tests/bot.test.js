@@ -2,7 +2,7 @@
 // Chỉ đọc đáp án Tỉnh thí (người chơi cũng học được). In ra bậc đạt được theo năm, và kẹt ở đâu.
 // Chạy: node tests/bot.test.js [số năm tối đa=45] [nước=7] [hạt giống=77]
 const path = require('path');
-for (const f of ['data', 'city', 'economy', 'game', 'battle', 'politics', 'war', 'events', 'world', 'wcities', 'campaign']) require(path.join(__dirname, '..', 'js', f + '.js'));
+for (const f of ['data', 'city', 'economy', 'game', 'battle', 'politics', 'war', 'events', 'world', 'wcities', 'campaign', 'trade', 'officials']) require(path.join(__dirname, '..', 'js', f + '.js'));
 const LT = globalThis.LT;
 const MAXY = +process.argv[2] || 45, NAT = process.argv[3] != null ? +process.argv[3] : 7, SEED = +process.argv[4] || 77;
 const G = LT.newGame(NAT, 'Bot', SEED);
@@ -124,7 +124,7 @@ function campaignStep() {
 function resolveAll() {
   let k = 0;
   while ((G.pendingEvent || G.pendingBattle || G.pendingKhao || G.pendingPromo || G.pendingNotice) && k++ < 12) {
-    if (G.pendingEvent) { const e = LT.EVENT(G.pendingEvent.id); let d = false; for (let i = 0; i < e.opts.length && !d; i++) if (!LT.eventOptionError(G, i)) { LT.chooseEvent(G, i); d = true; } if (!d) G.pendingEvent = null; }
+    if (G.pendingEvent) { const e = LT.EVENT(G.pendingEvent.id); let d = false; if (G.pendingEvent.id === 'suthanhtra' && !LT.eventOptionError(G, 1)) { LT.chooseEvent(G, 1); d = true; } for (let i = 0; i < e.opts.length && !d; i++) if (!LT.eventOptionError(G, i)) { LT.chooseEvent(G, i); d = true; } if (!d) G.pendingEvent = null; }
     if (G.pendingBattle) {
       const pb = G.pendingBattle; LT.ensureFormation(G); G.formation.auto = true; LT.ensureFormation(G);
       if (pb.canAuto && LT.rand(G) < .3) LT.autoDefend(G);
@@ -164,6 +164,7 @@ const pr = LT.promotion(G);
 console.log('--- Bot không bơm: ' + LT.NATIONS[NAT].n + ', hạt giống ' + SEED + ', ' + (Date.now() - t0) + ' ms');
 console.log('Mốc: ' + log.join(' · '));
 console.log('Kết thúc năm ' + G.year + ' tuần ' + G.week + (G.over ? ' — ' + G.over.title + ': ' + G.over.text.slice(0, 90) : ' (hết thời gian thử)') + ' | hạng ' + G.rank + ' | hộ ' + LT.totalHo(G) + ' | công trình ' + G.bl.length + ' | thành ' + LT.mineCount(G) + ' | quân ' + LT.armyCount(G) + ' | tiền ' + Math.round(G.res.tien) + ' | trận thắng ' + G.wins + ' | quân công ' + G.quanCong + ' | khảo gần nhất ' + (G.khao.history.length ? G.khao.history[G.khao.history.length - 1].total : '-') + ' | hạng Thượng ' + G.khao.thuong);
+if (pr && pr.paths) console.log('Đường lên Vương: nghi kỵ ' + Math.round(G.nghiky) + ', thanh danh ' + Math.round(G.player.thanhdanh) + ', dân tâm ' + Math.round(G.stat.dantam) + ', quân ' + LT.armyCount(G) + ', châu ' + LT.mineCountLvl(G, 2) + ', quân nước ' + Math.round(G.world.ns[G.nation].troops) + ' phong ' + pr.paths.phong.ok + ' lập ' + pr.paths.lap.ok);
 if (pr) console.log('Điều kiện bậc tiếp: ' + pr.conds.map(c => (c.ok ? 'ĐẠT ' : 'CHƯA ') + c.t.slice(0, 75)).join(' | '));
 if (G.rank >= 3) console.log('Mục tiêu chiến dịch: ' + LT.campTargets(G).slice(0, 8).map(c => c.n + '(L' + c.lvl + ' ' + LT.natName(G, c.own) + ', đồn ' + c.gar + ', ra đón ' + LT.muster(G, c) + ', lương ' + Math.round(LT.logistics(G, c.id).weeks) + 'tuần): ' + (LT.campAvail(G, c.id) || 'đánh được')).join(' ; '));
 if (process.env.DBG) console.log('Nhật ký chiến dịch: ' + G.log.filter(l => /Chiến dịch|HẠ THÀNH|Xuất quân|Dã chiến|Công thành|thất thủ|đói|Đại bại/.test(l.t)).slice(0, 14).map(l => l.y + ' ' + l.t.slice(0, 85)).join(' // '));

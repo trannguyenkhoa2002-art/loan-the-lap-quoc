@@ -135,6 +135,7 @@ LT.B = {
   winery: { n: 'Lò rượu', i: '🍶', c: { go: 25, da: 10 }, cat: 2, lab: 3, dur: 10, job: { c: 'cong', n: 6 }, in: { luong: 4 }, out: { ruou: 3 }, d: '6 thợ, 4 lương → 3 vò rượu/tuần. Cấm nấu rượu khi đói kém.' },
   armory: { n: 'Xưởng binh khí', i: '⚒️', c: { go: 40, da: 40, tien: 40 }, cat: 2, lab: 6, dur: 22, rank: 2, job: { c: 'cong', n: 15 }, in: { quang: 3, go: 2 }, d: '15 thợ: 3 quặng + 2 gỗ → 2 binh khí HOẶC 1 giáp. Từ chức Thứ sử. Cần cho nỏ và trọng kỵ.' },
   market: { n: 'Phường thị', i: '🏮', c: { go: 40, da: 20, tien: 20 }, cat: 3, lab: 5, dur: 16, job: { c: 'thuong', n: 8 }, d: 'Chợ: thu hút thương hộ, nâng phồn vinh, thu thuế chợ; phục vụ như kho (bán kính 8 ô).' },
+  port:   { n: 'Bến cảng', i: '⚓', c: { go: 80, da: 40, tien: 60 }, cat: 3, lab: 6, dur: 30, rank: 2, need: 'w3', job: { c: 'thuong', n: 10 }, d: 'Bến thuyền ở bờ nước: mở hải thương cho thương đội (lãi cao, rủi ro bão và hải tặc). Phải đặt trong 3 ô quanh nước.' },
   inn:    { n: 'Dịch trạm', i: '🐎', c: { go: 40, da: 10, tien: 20 }, cat: 3, lab: 3, dur: 12, need: 'road', job: { c: 'thuong', n: 2 }, d: 'Trạm ngựa trên đường: sức buôn bán +25%, hao hụt thương lộ −1%. Phải đặt sát đường.' },
   granary:{ n: 'Kho lương', i: '🛖', c: { go: 30, da: 10 }, cat: 3, lab: 3, dur: 12, d: 'Kho + thường bình thương. Tăng sức chứa, phục vụ công trình trong 8 ô theo đường, bật được thường bình thương.' },
   wall:   { n: 'Tường thành', i: '🧱', c: { da: 6 }, cat: 4, lab: 1, dur: 6, d: 'Tường gạch có nữ tường: thành phòng +1,5 mỗi đoạn. Giữ và kéo để xây liền.' },

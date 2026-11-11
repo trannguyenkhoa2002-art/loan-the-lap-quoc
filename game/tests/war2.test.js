@@ -1,7 +1,7 @@
 // Vòng 2: quân từ dân, thành, chiến dịch, đại chiến > 100.000 quân, tự động chơi tới bậc Vương, lưu/tải.
 // Chạy: node tests/war2.test.js
 const path = require('path');
-for (const f of ['data', 'city', 'economy', 'game', 'battle', 'politics', 'war', 'events', 'world', 'wcities', 'campaign']) require(path.join(__dirname, '..', 'js', f + '.js'));
+for (const f of ['data', 'city', 'economy', 'game', 'battle', 'politics', 'war', 'events', 'world', 'wcities', 'campaign', 'trade', 'officials']) require(path.join(__dirname, '..', 'js', f + '.js'));
 const LT = globalThis.LT;
 let fails = 0;
 const ok = (c, m) => { if (!c) { fails++; console.log('  FAIL  ' + m); } else console.log('  ok    ' + m); };
@@ -175,11 +175,11 @@ console.log('--- G. Tự động chơi từ tri huyện tới Vương (không Na
   ok(G.rank >= 5, 'Tự động chơi tới bậc Vương (hạng ' + G.rank + ', năm ' + G.year + ')');
   globalThis.__botG = G;
 }
-console.log('--- H. Lưu / tải sau khi mở rộng (đại cục, chiến dịch, thành, 96×96)');
+console.log('--- H. Lưu / tải sau khi mở rộng (đại cục, chiến dịch, thành, lưới 110×110)');
 {
   const G = globalThis.__botG; const txt = LT.serialize(G), H = LT.deserialize(txt);
   ok(H.world.cities.length === 120 && LT.mineCount(H) === LT.mineCount(G) && H.rank === G.rank && H.year === G.year, 'Tải lại đủ 120 thành, ' + LT.mineCount(H) + ' thành của bạn, cùng bậc và năm');
-  ok(H.map.length === 96 * 96 && H.map[H.hy * LT.N + H.hx].b.k === 'hall', 'Bản đồ 96×96 dựng lại, phủ đúng chỗ');
+  ok(H.map.length === LT.N * LT.N && H.map[H.hy * LT.N + H.hx].b.k === 'hall', 'Bản đồ lưới LT.N×LT.N dựng lại, phủ đúng chỗ');
   for (let i = 0; i < 40; i++) { LT.tickWeek(H); calm(H); }
   ok(!fin(H), 'Chạy tiếp 40 tuần sau khi tải không lỗi');
   console.log('  cỡ bản lưu: ' + Math.round(txt.length / 1024) + ' KB');

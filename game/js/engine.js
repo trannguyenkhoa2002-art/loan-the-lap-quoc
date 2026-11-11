@@ -2,7 +2,7 @@
 // Engine isometric: sao chép từ demo-thanh-tri (primitives).
 const cv=document.getElementById('c');let ctx=cv.getContext('2d');const MAINCTX=ctx;
 let W=0,H=0,DPR=1,s=1.2,ox=0,oy=0,T=0;
-const TW=64,TH=32,OUT='#2b3034',N=96;
+const TW=64,TH=32,OUT='#2b3034',N=LT.N;
 let G=null;
 const P=(x,y,z=0)=>({x:ox+(x-y)*TW/2*s,y:oy+(x+y)*TH/2*s-z*s});
 const shade=(hex,k)=>{const n=parseInt(hex.slice(1),16),c=[n>>16,n>>8&255,n&255].map(v=>Math.max(0,Math.min(255,Math.round(k>0?v+(255-v)*k:v*(1+k)))));return'#'+c.map(v=>v.toString(16).padStart(2,'0')).join('')};

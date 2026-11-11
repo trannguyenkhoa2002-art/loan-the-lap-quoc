@@ -13,10 +13,11 @@ let WALK = [], FL = [];
 const float = (x, y, txt) => FL.push({ x, y, txt, t: 0 });
 
 // ---- công trình mới ---------------------------------------------------------------
-const NEWKIND = { terrace: 1, mansion: 1, well: 1, watch: 1, clinic: 1, mine: 1, mulberry: 1, tea: 1, canal: 1, cloth: 1, forge: 1, winery: 1 };
+const NEWKIND = { port: 1, terrace: 1, mansion: 1, well: 1, watch: 1, clinic: 1, mine: 1, mulberry: 1, tea: 1, canal: 1, cloth: 1, forge: 1, winery: 1 };
 function drawNew(b) {
   const x = b.x, y = b.y, v = rnd(x * 17 + y * 31), k = b.k, pop = Math.min(1, (T - (b.born || -9)) * 4);
   if (k === 'mine') { oldBuilding({ ...b, k: 'quarry', born: -9 }); boulder(x + .82, y + .78, .16, 7, v * 9, '#a8643f'); boulder(x + .66, y + .86, .12, 5, v * 13, '#7c4a35'); return; }
+  if (k === 'port') { oldBuilding({ ...b, k: 'inn', born: -9 }); boulder(x + .85, y + .85, .13, 6, v * 11, '#6b7f8a'); return; }
   if (k === 'cloth') { oldBuilding({ ...b, k: 'silk', born: -9 }); return; }
   if (k === 'forge') { oldBuilding({ ...b, k: 'armory', born: -9 }); return; }
   if (pop < 1) { const c = P(x + .5, y + .5); ctx.save(); ctx.translate(c.x, c.y); ctx.scale(1, .4 + .6 * pop); ctx.translate(-c.x, -c.y); }
@@ -155,7 +156,7 @@ function draw() {
 
 // ---- bản đồ nhỏ (lớp địa hình vẽ một lần, công trình vẽ lại mỗi 0,3 giây) ----
 const mini = document.getElementById('minimap'), mc = mini.getContext('2d');
-const MPX = 1.45, MPY = .87;
+const MPX = 1.45 * 96 / LT.N, MPY = .87 * 96 / LT.N;
 const MP = (x, y) => ({ x: 154 + (x - y) * MPX, y: 8 + (x + y) * MPY });
 let miniBase = null, miniKey = '';
 function miniPoly(c, p, w) { c.beginPath(); c.moveTo(p.x, p.y); c.lineTo(p.x + w, p.y + w * .6); c.lineTo(p.x, p.y + w * 1.2); c.lineTo(p.x - w, p.y + w * .6); c.fill(); }

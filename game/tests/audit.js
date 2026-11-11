@@ -1,7 +1,7 @@
 // Kiểm tĩnh: mọi data-act / data-chg / data-inp trong giao diện đều có hàm ACT tương ứng; không module, không fetch.
 const fs = require('fs'), path = require('path');
 const dir = path.join(__dirname, '..', 'js');
-const src = ['ui', 'ui-panels', 'ui-war', 'ui-replay', 'ui-cities', 'main'].map(f => fs.readFileSync(path.join(dir, f + '.js'), 'utf8')).join('\n');
+const src = ['ui', 'ui-panels', 'ui-war', 'ui-replay', 'ui-trade', 'ui-off', 'ui-cities', 'main'].map(f => fs.readFileSync(path.join(dir, f + '.js'), 'utf8')).join('\n');
 const used = new Set(); for (const m of src.matchAll(/data-(?:act|chg|inp)="([A-Za-z0-9_]+)"/g)) used.add(m[1]);
 const have = new Set([...src.matchAll(/ACT\.([A-Za-z0-9_]+)\s*=/g)].map(m => m[1]));
 const missing = [...used].filter(x => !have.has(x));

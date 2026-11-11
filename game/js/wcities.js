@@ -130,7 +130,7 @@ LT.citiesWeek = function (G) {
     }
     c.gar = Math.min(Math.round(c.ho * .05), c.gar + Math.max(1, Math.round(c.ho * .002)));
     // tự chủ (CT §6.5): xa, lâu không luân chuyển, tướng nhiều quân ⇒ tự chủ cao; giám quân và thăm viếng ⇒ thấp
-    c.auto = clamp(c.auto + (.06 + .05 * c.dist + (c.nop > .75 ? .05 : 0) + (c.binh > 0 ? .03 : 0)) * (c.giam ? .45 : 1) - G.player.uyvong / 2500, 0, 100);
+    c.auto = clamp(c.auto + (.06 + .05 * c.dist + (c.nop > .75 ? .05 : 0) + (c.binh > 0 ? .03 : 0)) * (c.giam ? .45 : 1) - G.player.uyvong / 2500 + (c._autoAdd || 0), 0, 100);
     c.tamo = clamp(c.tamo + (c.auto > 60 ? .0006 : -.0001), .01, .25);
     c.grain = Math.min(c.ho * 10, c.grain + c.ho * ((c.pc === 'nong' ? .38 : c.pc === 'thuong' ? .27 : .31) - .15) * (1 - Math.min(.8, m * 1.2)) - c.gar * LT.LINH_AN * .3);
     if (c.giam && wk === 1) { const p = Math.min(G.res.tien, 8); G.res.tien -= p; LT.flowAdd(G, 'tien', -p, 'Giám quân ở ' + c.n); }
@@ -139,14 +139,14 @@ LT.citiesWeek = function (G) {
     // nộp thuế hai kỳ
     if (wk === LT.TAX_WEEK_HA || wk === LT.TAX_WEEK_THU) {
       const gross = LT.cityYear(c) / 2, chi = gross * .35;
-      let ship = (gross - chi) * c.nop * Math.max(.3, 1 - .03 * c.dist) * (1 - c.tamo) * (c.lowtax > 0 ? .45 : 1) * (c.auto > 70 ? .6 : 1) * (1 - Math.min(.9, m * 1.2));
+      let ship = (gross - chi) * c.nop * Math.max(.3, 1 - .03 * c.dist) * (1 - c.tamo) * (c.lowtax > 0 ? .45 : 1) * (c.auto > 70 ? .6 : 1) * (1 - Math.min(.9, m * 1.2)) * (c.quan ? 1 : .6);
       if (G.pol.nop === 'thieu') ship *= 1;
       c.last = ship; G.res.tien += ship; G.yr.rev += ship; G.pend.tien += ship; LT.flowAdd(G, 'tien', ship, 'Các thành thuộc quyền nộp về');
       if (c.nop > .75) c.dt = clamp(c.dt - 3, 0, 100);
     }
     // ly khai
     if (c.auto > 85 && c.trung < 45 && LT.rand(G) < .02 && G.rank >= 3) {
-      LT.log(G, 'Thành ' + c.n + ' ly khai! Quan trấn nhậm trở mặt, theo nước khác.', 'bad');
+      LT.log(G, 'Thành ' + c.n + ' ly khai! Quan trấn nhậm ' + ((LT.offById(G, c.quan) || {}).name || '') + ' trở mặt, theo nước khác.', 'bad'); if (LT.offDefect) LT.offDefect(G, c);
       const to = NAT[G.nation].adj.filter(j => w.ns[j].alive)[0]; c.mine = false; c.own = to != null ? to : G.nation; c.auto = 30; LT.syncNations(G); if (LT.addChron) LT.addChron(G, 'Thành ' + c.n + ' ly khai khỏi tay bạn.');
     }
     if (c.dt < 15 && LT.rand(G) < .02) { c.ho = Math.round(c.ho * .96); }
@@ -174,7 +174,7 @@ LT.logistics = function (G, tid) {
   const march = from ? clamp(Math.ceil(Math.hypot(from.x - c.x, from.y - c.y) * 70), 2, 9) : 4, need = march + 12;
   return { weekly, have, weeks, march, need, ok: weeks >= need, okMarch: weeks >= march, sources: src.sort((a, b) => b.v - a.v).slice(0, 6) };
 };
-LT.cityYear = function (c) { const pc = LT.PHUONG_CHAM[c.pc].mul; return c.ho * 1.7 * pc * (.6 + c.chinh / 250) * (c.dt / 70); };   // năng suất gốc 1,7 quan/hộ/năm (chợ, muối, trà, thủ công; tài liệu để ngỏ)
+LT.cityYear = function (c) { const pc = LT.PHUONG_CHAM[c.pc].mul * (1 + .03 * (c.mkt || 0)); return c.ho * 1.7 * pc * (.6 + c.chinh / 250) * (c.dt / 70); };   // năng suất gốc 1,7 quan/hộ/năm (chợ, muối, trà, thủ công; tài liệu để ngỏ)
 LT.cityOrderUse = function (G, n) { if (G.rank < 4) return true; if (G.orders.left < (n || 1)) return false; G.orders.left -= (n || 1); return true; };
 LT.cityPolicy = function (G, id, k, v) {
   const c = G.world.cities[id]; if (!c || !c.mine) return { ok: false, err: 'Không phải thành của bạn' };
@@ -185,14 +185,16 @@ LT.rotateOfficial = function (G, id) {
   const c = G.world.cities[id]; if (!c || !c.mine) return { ok: false, err: 'Không phải thành của bạn' };
   if (G.res.tien < 20) return { ok: false, err: 'Cần 20 quan lộ phí luân chuyển' };
   if (!LT.cityOrderUse(G, 1)) return { ok: false, err: 'Hết chính lệnh tuần này' };
-  G.res.tien -= 20; LT.flowAdd(G, 'tien', -20, 'Luân chuyển quan'); c.auto = Math.max(0, c.auto - 30); c.chinh = 38 + Math.floor(LT.rand(G) * 40); c.trung = 50 + Math.floor(LT.rand(G) * 40); c.tamo = Math.max(.02, c.tamo * .7);
+  G.res.tien -= 20; LT.flowAdd(G, 'tien', -20, 'Luân chuyển quan'); c.auto = Math.max(0, c.auto - 30); c.tamo = Math.max(.02, c.tamo * .7);
+  if (LT.offDismiss && c.quan) { LT.offDismiss(G, c.quan); c.vacant = false; c.quan = null; c.chinh = 0; c.trung = 0; LT.offEnsure(G, c, 'trieudinh'); if (LT.offLog) LT.offLog(G, c, 'Triều đình luân chuyển quan: ' + (LT.offById(G, c.quan) || {}).name + ' nhận chức.', null); }
   return { ok: true };
 };
 LT.inspectCity = function (G, id) { // ngự sử thanh tra
   const c = G.world.cities[id]; if (!c || !c.mine) return { ok: false, err: 'Không phải thành của bạn' };
   if (G.res.tien < 30) return { ok: false, err: 'Cần 30 quan' };
   G.res.tien -= 30; LT.flowAdd(G, 'tien', -30, 'Ngự sử thanh tra'); const was = c.tamo; c.tamo = Math.max(.01, c.tamo * .4); c.dt = clamp(c.dt - 2, 0, 100);
-  return { ok: true, text: 'Ngự sử tra ' + c.n + ': tham ô phát hiện ' + Math.round(was * 100) + '% → ' + Math.round(c.tamo * 100) + '%.' };
+  const oi = LT.offInspect ? LT.offInspect(G, c).text : '';
+  return { ok: true, text: 'Ngự sử tra ' + c.n + ': tham ô phát hiện ' + Math.round(was * 100) + '% → ' + Math.round(c.tamo * 100) + '%.' + oi };
 };
 
 // ---- chiến tranh giữa các nước máy bằng quân thật ------------------------------------------------------

@@ -197,7 +197,7 @@ function openMenu() {
   const a = LT.slotMeta('auto');
   h += '</div><div class="box" style="margin-top:8px"><b>Tự động lưu</b> — mỗi 6 tuần và mỗi cuối năm: ' + (a ? a.nation + ' · năm ' + a.year + ' tuần ' + a.week : 'chưa có') + ' <button class="btn2" data-act="loadSlot" data-s="auto" ' + (a ? '' : 'disabled') + '>Tải bản tự lưu</button></div>';
   h += '<h3>Khác</h3><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn2" data-act="showHelp">📖 Hướng dẫn chơi</button><button class="btn2" data-act="newGame">🏯 Ván mới (về màn chọn nước)</button><button class="btn2" data-act="close">▶ Tiếp tục chơi</button></div>';
-  h += '<p class="hint" style="margin-top:12px">Phím tắt: Cách = tạm dừng · 1/2/3 = tốc độ x1/x2/x4 · T Triều chính · Q Quân vụ · W Thiên hạ · S Sổ sách · H về phủ · G lưới · Esc bỏ chọn.</p>';
+  h += '<p class="hint" style="margin-top:12px">Phím tắt: Cách = tạm dừng · 1/2/3 = tốc độ x1/x2/x4 · T Triều chính · Q Quân vụ · E Thiên hạ · L Sổ sách · B Giao thương · V Quan viên · W A S D hoặc mũi tên = trượt bản đồ (Shift nhanh) · H về phủ · G lưới · Esc bỏ chọn.</p>';
   openModal(h, 'mid');
 }
 ACT.saveSlot = el => { const ok = LT.saveSlot(G, el.dataset.s); toast(ok ? 'Đã lưu ván' : 'Không lưu được (bộ nhớ trình duyệt bị chặn?)', ok ? 'good' : 'bad'); openMenu(); };
@@ -223,7 +223,7 @@ function showStart() {
   h += '<div class="box" style="margin-top:12px"><b class="gold">' + pn.n + ' (' + pn.diff + ')</b> — ' + LT.NATION_PERKS[pn.id] + '</div>';
   h += '<div style="display:flex;gap:12px;align-items:center;justify-content:center;margin:16px 0;flex-wrap:wrap"><label>Tên của bạn: <input id="inName" class="inp" maxlength="18" value="' + esc(UI.pname || 'Lý Văn Tín') + '" style="width:190px"></label><button class="btn" id="go" data-act="startGame" style="padding:12px 30px;font-size:14px">Nhậm chức tri huyện →</button></div>';
   if (saves.length) h += '<div style="text-align:center" class="hint">Ván đã lưu: ' + saves.map(s => '<button class="btn2" data-act="loadSlot" data-s="' + s[0] + '">' + (s[0] === 'auto' ? 'Tự lưu' : 'Ô ' + s[0].slice(1)) + ' · ' + s[1].nation + ' · năm ' + s[1].year + '</button>').join(' ') + '</div>';
-  if (oldSaves) h += '<div class="hint warnc" style="text-align:center;margin-top:8px">⚠ Có bản lưu của phiên bản trước (lưới 48×48). Bản lưu đó không tương thích với bản mới (lưới 96×96, 120 thành, quân từ dân) nên không tải được — hãy bắt đầu ván mới.</div>';
+  if (oldSaves) h += '<div class="hint warnc" style="text-align:center;margin-top:8px">⚠ Có bản lưu của phiên bản trước (lưới nhỏ hơn). Bản lưu đó không tương thích với bản mới (lưới 96×96, 120 thành, quân từ dân) nên không tải được — hãy bắt đầu ván mới.</div>';
   h += '<div class="hint" style="text-align:center;margin-top:12px">Kéo chuột: di chuyển · Cuộn: thu phóng · Cách: tạm dừng · Chú giải hiện khi rê chuột.</div></div>';
   el.innerHTML = h; bindActs(el);
   $('inName').oninput = e => { UI.pname = e.target.value; };
