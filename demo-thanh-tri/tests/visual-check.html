@@ -1,0 +1,15 @@
+<!doctype html><html lang="vi"><meta charset="utf-8"><title>Kiểm tra thi công & giao thông</title><style>body{margin:0;background:#142c25}iframe{border:0;width:100vw;height:100vh;display:block}#result{position:fixed;z-index:100;right:25px;top:115px;background:#15362ded;color:#ead8a9;padding:10px;font:11px system-ui;max-width:320px;pointer-events:none;border:1px solid #c1a365}</style><iframe id="game" src="../index.html"></iframe><div id="result">Đang tạo cảnh kiểm tra…</div><script>
+const frame=document.getElementById('game'),result=document.getElementById('result');
+frame.onload=()=>{const w=frame.contentWindow,g=w.G;w.closeModal();g.w=g.s=g.g=g.f=10000;
+  for(let y=8;y<=19;y++)for(let x=8;x<=20;x++){const q=g.map[y*26+x];if(!q.b)q.t='g'}
+  const road=(x,y)=>{if(g.map[y*26+x].b)return;w.place('road',x,y);const b=g.map[y*26+x].b;b.building=false;b.progress=1;b.on=true};
+  for(let x=9;x<=19;x++){road(x,11);road(x,17)}for(let y=12;y<17;y++){road(9,y);road(19,y)}
+  for(const [x,y] of [[10,12],[11,12],[15,12],[16,12],[10,16],[16,16]]){w.place('house',x,y);const b=g.map[y*26+x].b;b.building=false;b.progress=1;b.born=-9}
+  w.recalc();w.ui();const cap=g.cap;w.place('house',14,15);const site=g.map[15*26+14].b;
+  const checks=[];const check=(ok,label)=>{checks.push((ok?'PASS':'FAIL')+' '+label);result.textContent=checks.join(' · ')};
+  check(site.building&&site.progress===0,'Khởi công từ 0%');check(g.cap===cap,'Chưa tăng sức chứa');
+  const initial=site.progress;g.speed=0;setTimeout(()=>{check(site.progress===initial,'Dừng thi công khi tạm dừng');g.speed=1;},350);
+  setTimeout(()=>{check(site.progress>0&&site.progress<1,'Có giai đoạn thi công');check(g.cap===cap,'Không sử dụng nhà chưa xong')},5500);
+  const deadline=Date.now()+60000,finish=setInterval(()=>{if(site.building&&Date.now()<deadline)return;clearInterval(finish);check(!site.building&&site.progress===1,'Thi công hoàn tất');check(g.cap===cap+4,'Tăng sức chứa sau hoàn tất');setTimeout(()=>check(w.document.getElementById('works').textContent==='','Xóa tiến độ hoàn tất'),500)},250);
+};
+</script></html>

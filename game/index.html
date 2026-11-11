@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Loạn Thế Lập Quốc · Ngũ Đại Thập Quốc</title>
+<link rel="stylesheet" href="style.css">
+</head><body>
+<canvas id="c"></canvas><div id="vig"></div>
+<div id="hud">
+  <div id="topbar" class="card">
+    <div id="brand"><span class="seal">國</span><div><strong>Loạn Thế Lập Quốc</strong><small id="rankline">—</small></div></div>
+    <div id="datebox" data-tip="Một tuần = 10 ngày, một tháng = 3 tuần, một năm = 36 tuần. Ở tốc độ x1, một tuần ≈ 20 giây."><div id="dateline">Năm 917</div><div id="seasonline">—</div></div>
+    <div id="speedbox">
+      <button id="b-pause" data-tip="Tạm dừng / tiếp tục (phím Cách)">⏸</button>
+      <button class="spd" data-spd="1" data-tip="Tốc độ x1 (phím 1)">x1</button>
+      <button class="spd" data-spd="2" data-tip="Tốc độ x2 (phím 2)">x2</button>
+      <button class="spd" data-spd="4" data-tip="Tốc độ x4 (phím 3)">x4</button>
+      <button id="b-step" data-tip="Qua ngay một tuần (dùng khi đang tạm dừng)">⏭ +1 tuần</button>
+    </div>
+    <div id="menubar">
+      <button id="m-court" data-tip="Dân, thuế, chính sách, quan lộ, bố cáo (phím T)">📜 Triều chính</button>
+      <button id="m-army" data-tip="Mộ quân, tướng, bày trận (phím Q)">⚔️ Quân vụ</button>
+      <button id="m-world" data-tip="12 nước, ngoại giao, biên niên (phím W)">🗺️ Thiên hạ</button>
+      <button id="m-ledger" data-tip="Vì sao tiền, lương, hàng hóa lên xuống (phím S)">📒 Sổ sách</button>
+      <button id="m-menu" data-tip="Lưu, tải, ván mới, hướng dẫn">☰</button>
+    </div>
+  </div>
+  <div id="resbar"></div>
+  <div id="left">
+    <div id="goal" class="card"></div>
+    <div id="stats" class="card"></div>
+    <div id="alerts" class="card"></div>
+  </div>
+  <div id="right">
+    <div id="atlas" class="card"><div class="atlas-head"><span>ĐỊA ĐỒ</span><span id="zoom-label">120%</span></div><canvas id="minimap" width="308" height="208" aria-label="Bản đồ nhỏ, bấm để di chuyển góc nhìn"></canvas></div>
+    <div id="view-controls"><button id="zoom-in" data-tip="Phóng to (+)">+</button><button id="zoom-out" data-tip="Thu nhỏ (−)">−</button><button id="recenter" data-tip="Về phủ (phím H)">⌖</button><button id="grid-toggle" data-tip="Hiện lưới xây dựng (phím G)">▦</button></div>
+    <div id="inspect" class="card" style="display:none"></div>
+  </div>
+  <div id="bar"><div id="tip" class="card"></div><div id="tabs"></div><div id="build" class="card"></div></div>
+</div>
+<div id="toast"></div>
+<div id="tooltip"></div>
+<div id="modal"><div class="card" id="mBox"></div></div>
+<div id="start"></div>
+<script src="js/data.js"></script>
+<script src="js/city.js"></script>
+<script src="js/economy.js"></script>
+<script src="js/game.js"></script>
+<script src="js/battle.js"></script>
+<script src="js/politics.js"></script>
+<script src="js/war.js"></script>
+<script src="js/events.js"></script>
+<script src="js/world.js"></script>
+<script src="js/wcities.js"></script>
+<script src="js/campaign.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/render-base.js"></script>
+<script src="js/render-gfx.js"></script>
+<script src="js/render-build.js"></script>
+<script src="js/render.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/ui-panels.js"></script>
+<script src="js/ui-war.js"></script>
+<script src="js/ui-cities.js"></script>
+<script src="js/main.js"></script>
+</body></html>
