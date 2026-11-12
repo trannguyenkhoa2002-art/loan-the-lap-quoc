@@ -4,6 +4,8 @@
 // ============================================================================
 (function (g) {
 const LT = g.LT = g.LT || {};
+// bản lưu từ phiên bản SAVE_MIN trở lên luôn tải được: LT.SAVE_MIGRATE[v] chuyển v -> v+1 (điền mặc định, không mất dữ liệu). Bản < SAVE_MIN (lưới cũ) vẫn bị từ chối.
+LT.SAVE_MIN = 8; LT.SAVE_MIGRATE = {};
 const SAVE_KEY = 'loan-the-lap-quoc-v2', SAVE_KEY_OLD = 'loan-the-lap-quoc-v1', SAVE_VER = 8;
 
 LT.newYearLedger = () => ({ rev: 0, exp: 0, yield: 0, leave: 0, arrive: 0, thueTien: 0, thueThoc: 0, cho: 0, mono: 0, remitT: 0, remitL: 0, dueT: 0, dueL: 0, quota: 0, hoStart: 0, tbtMua: 0, tbtBan: 0, dtTBT: 0, unpaid: 0 });
@@ -104,7 +106,8 @@ LT.serialize = function (G) {
 };
 LT.deserialize = function (txt) {
   const o = JSON.parse(txt);
-  if (!o || o.ver !== SAVE_VER) throw new Error('phiên bản lưu ' + (o && o.ver) + ' ≠ ' + SAVE_VER);
+  if (!o || !(o.ver >= LT.SAVE_MIN && o.ver <= SAVE_VER)) throw new Error('phiên bản lưu ' + (o && o.ver) + ' ≠ ' + SAVE_VER);
+  while (o.ver < SAVE_VER) { const m = LT.SAVE_MIGRATE[o.ver]; if (!m) throw new Error('không chuyển được bản lưu phiên bản ' + o.ver); m(o); o.ver++; }   // chuyển đổi bản lưu cũ lên mới, không từ chối
   const G = o; G.map = [];
   LT.genMap(G, G.nation);
   G.era = Math.min(3, G.rank);

@@ -9,11 +9,67 @@ const trK = o => '<span class="' + (o.trung < 40 ? 'neg' : o.trung < 60 ? 'warnc
 const traitTxt = o => o.trait ? '<span class="tag y" data-tip="' + esc(LT.OFF_TRAITS[o.trait].d) + '">' + LT.OFF_TRAITS[o.trait].n + '</span>' : '';
 const postTxt = o => !o.post ? '<span class="mut">chưa có việc</span>' : o.post.t === 'seat' ? LT.SEAT_ROLES[o.post.role].n + ' (trị sở)' : esc(G.world.cities[o.post.id].n);
 function trend(c) { const h = c.hist || []; if (h.length < 2) return '<span class="mut">—</span>'; const a = h[h.length - 2], b = h[h.length - 1], ar = (x, y, t) => '<span class="' + (y > x ? 'pos' : y < x ? 'neg' : '') + '" data-tip="' + t + '">' + (y > x ? '▲' : y < x ? '▼' : '■') + '</span>'; return 'dân ' + ar(a.ho, b.ho, 'Hộ ' + a.ho + ' → ' + b.ho) + ' lương ' + ar(a.grain, b.grain, 'Lương ' + a.grain + ' → ' + b.grain) + ' nộp ' + ar(a.last, b.last, 'Nộp ' + a.last + ' → ' + b.last) + ' tâm ' + ar(a.dt, b.dt, 'Dân tâm ' + a.dt + ' → ' + b.dt); }
+// ---- tab Giao việc: bốn thẻ chức phụ trách (xây dựng, kinh tế, quân sự, tổng quản) ----
+const DGN = (role, path, v, w) => '<input class="inp" type="number" min="0" value="' + v + '" data-chg="dgIn" data-r="' + role + '" data-p="' + path + '" data-t="n" style="width:' + (w || 70) + 'px">';
+const DGS = (role, path, cur, opts) => '<select class="sel" data-chg="dgIn" data-r="' + role + '" data-p="' + path + '" data-t="s">' + Object.keys(opts).map(k => '<option value="' + k + '"' + (String(cur) === k ? ' selected' : '') + '>' + esc(opts[k]) + '</option>').join('') + '</select>';
+const DGC = (role, path, cur, label) => '<label class="hint" style="margin-right:10px"><input type="checkbox" data-chg="dgIn" data-r="' + role + '" data-p="' + path + '" data-t="b"' + (cur ? ' checked' : '') + '> ' + label + '</label>';
+function dgBar(spent, bud) { const p = bud > 0 ? Math.min(100, spent / bud * 100) : 0; return '<div class="bar2 ' + (p > 90 ? 'r' : p > 60 ? 'y' : 'g') + '"><i style="width:' + p + '%"></i></div>'; }
+function dgCard(role) {
+  const O = LT.off(G), D = LT.dg(G), d = D[role], R = LT.DG_ROLES[role], seat = R.seat, cur = LT.offById(G, O.seat[seat]), eff = LT.dgEff(G, role);
+  const idle = O.list.filter(o => !o.post);
+  let h = '<div class="box" style="margin:8px 0;' + (d.on ? 'border-color:#8fb86a' : '') + '"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b style="font-size:15px">' + R.i + ' ' + LT.SEAT_ROLES[seat].n + '</b>';
+  h += '<button class="btn2 ' + (d.on ? 'on' : '') + '" data-act="dgOn" data-r="' + role + '" style="min-width:86px">' + (d.on ? '✅ Đang giao' : '⏸ Đang tắt') + '</button>';
+  h += '<span class="hint">' + esc(LT.SEAT_ROLES[seat].d) + '</span></div>';
+  h += '<div style="margin:6px 0">Quan: ' + (cur ? '<b>' + esc(cur.name) + '</b> ' + offStats(cur) + ' ' + trK(cur) + ' · năng lực <b>' + Math.round(eff * 100) + '%</b> ' : '<span class="neg">chưa bổ nhiệm</span> ') +
+    '<select class="sel" data-chg="dgAppoint" data-r="' + role + '"><option value="">— chọn quan —</option>' + idle.concat(cur ? [cur] : []).map(o => '<option value="' + o.id + '"' + (cur && cur.id === o.id ? ' selected' : '') + '>' + esc(o.name) + ' (chính ' + Math.round(o.chinh) + ', trí ' + Math.round(o.tri) + ', thống ' + Math.round(o.tong) + ')</option>').join('') + '</select>' + (cur ? ' <button class="btn2" data-act="dgFire" data-r="' + role + '">Bỏ chức</button>' : '') + (G.rank < 2 ? ' <span class="neg">(từ chức Thứ sử)</span>' : '') + '</div>';
+  const per = d.per === 'nam' ? 'năm' : 'quý';
+  h += '<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start"><div style="min-width:250px"><div class="hint"><b>Ngân sách</b> mỗi ' + DGS(role, 'per', d.per, { quy: 'quý', nam: 'năm' }) + '</div>';
+  for (const k in d.budget) h += '<div class="flowrow"><span>' + ({ tien: '🪙 Tiền', go: '🪵 Gỗ', da: '🪨 Đá' })[k] + '</span>' + DGN(role, 'budget.' + k, d.budget[k]) + '<span class="hint">đã chi ' + Math.round(d.spent[k]) + '</span></div>' + dgBar(d.spent[k], d.budget[k]);
+  h += '<div class="flowrow"><span class="hint">Quỹ dự phòng: quan không động vào dưới</span>' + DGN(role, 'reserve', d.reserve, 60) + '</div></div><div style="min-width:280px;flex:1">';
+  if (role === 'xd') {
+    h += '<div class="flowrow"><span>Chính sách</span>' + DGS(role, 'pol', d.pol, LT.DG_POL.xd) + '</div>';
+    h += '<div class="flowrow"><span>Chỉ tiêu dân số (hộ, 0 = không)</span>' + DGN(role, 'tg.ho', d.tg.ho) + '</div><div class="flowrow"><span>Chỉ tiêu lương dự trữ (thạch)</span>' + DGN(role, 'tg.luong', d.tg.luong, 80) + '</div>';
+    h += '<div class="hint">Đã đặt ' + d.stat.placed + ' công trình, ' + d.stat.roads + ' ô đường' + (d.stat.skim > 0.5 ? ', bị xén ' + Math.round(d.stat.skim) + ' quan' : '') + '. Quan không bao giờ phá công trình của bạn.</div>';
+    h += '<div class="hint" style="margin-top:6px"><b>Vùng cấm quan xây</b>: ' + (D.nogo.length ? D.nogo.map((z, i) => '(' + z.x + ',' + z.y + ') ±' + z.r + ' <a href="#" data-act="dgNogoDel" data-i="' + i + '">bỏ</a>').join(' · ') : 'chưa có') + '</div>';
+    const sel = UI.selB ? { x: UI.selB.x, y: UI.selB.y } : { x: G.hx + 1, y: G.hy + 1 };
+    h += '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap" class="hint">Ô ' + '<input class="inp" id="ngx" type="number" value="' + sel.x + '" style="width:58px"> , <input class="inp" id="ngy" type="number" value="' + sel.y + '" style="width:58px"> bán kính <input class="inp" id="ngr" type="number" value="4" style="width:50px"> <button class="btn2" data-act="dgNogoAdd">🚫 Cấm</button>' + (UI.selB ? '' : ' (mặc định: quanh phủ; chọn một công trình trên bản đồ để lấy ô của nó)') + '</div>';
+  } else if (role === 'kt') {
+    h += '<div class="flowrow"><span>Chính sách</span>' + DGS(role, 'pol', d.pol, LT.DG_POL.kt) + '</div>';
+    const tl = {}; LT.TAX_LEVELS.forEach((t, i) => { tl[i] = t.n; });
+    h += '<div class="flowrow"><span>Thuế thấp nhất / cao nhất cho phép</span><span>' + DGS(role, 'taxMin', d.taxMin, tl) + ' ' + DGS(role, 'taxMax', d.taxMax, tl) + '</span></div>';
+    h += '<div class="flowrow"><span>Dân tâm muốn giữ từ — đến</span><span>' + DGN(role, 'dtLo', d.dtLo, 56) + ' — ' + DGN(role, 'dtHi', d.dtHi, 56) + '</span></div><div>' + DGC(role, 'buyGrain', d.buyGrain, 'Mua lương ở chợ khi thiếu') + DGC(role, 'sell', d.sell, 'Bán hàng dư khi cần tiền') + '</div>';
+    h += '<div class="hint">Đã chỉnh thuế ' + d.stat.taxMoves + ' lần, mua ' + Math.round(d.stat.bought) + ' thạch, bán ' + Math.round(d.stat.sold) + ' hàng. Hiện thuế: <b>' + LT.TAX_LEVELS[G.pol.tax].n + '</b>' + (LT.marketTier(G) ? '' : ' · chưa có Phường thị nên không mua bán được') + '.</div>';
+  } else if (role === 'qs') {
+    h += '<div class="flowrow"><span>Mục tiêu quân số (hiện ' + LT.armyCount(G) + '/' + LT.armyCap(G) + ')</span>' + DGN(role, 'tg.quan', d.tg.quan, 80) + '</div><div class="hint"><b>Cơ cấu binh chủng</b> (tỉ lệ tương đối):</div><div style="display:flex;gap:8px;flex-wrap:wrap">';
+    for (const k of ['truongthuong', 'cung', 'daothuan', 'khinhky', 'trongky', 'no']) h += '<label class="hint">' + LT.UNITS[k].n + ' ' + DGN(role, 'mix.' + k, d.mix[k] || 0, 50) + '</label>';
+    h += '</div><div class="hint">Cần Quân doanh; mộ theo luật mộ quân hiện có (hộ binh, tân binh luyện nhiều tuần). Đã mộ ' + d.stat.recruited + ' lính.</div>';
+  } else {
+    h += '<div class="flowrow"><span>Chính sách</span>' + DGS(role, 'pol', d.pol, LT.DG_POL.tt) + '</div><div>' + DGC(role, 'fill', d.fill, 'Tự điền thành khuyết quan') + DGC(role, 'rotate', d.rotate, 'Luân chuyển quan quá 3 năm (20 quan)') + DGC(role, 'inspect', d.inspect, 'Cho ngự sử tra thành đáng ngờ (30 quan)') + '</div>';
+    h += '<div class="hint">Đã điền ' + d.stat.filled + ' chức, luân chuyển ' + d.stat.rotated + ', thanh tra ' + d.stat.inspected + ' lần. Ngân sách này gồm cả lương chiêu mộ người mới.</div>';
+  }
+  h += '</div></div><div class="hint" style="margin-top:6px"><b>Nhật ký</b>' + (d.log.length ? '' : ' — chưa có') + '</div>';
+  const okL = d.log.filter(e => e.k !== 'no').slice(0, 5), noL = d.log.filter(e => e.k === 'no').slice(0, 2), shown = d.log.filter(e => okL.indexOf(e) >= 0 || noL.indexOf(e) >= 0);
+  h += shown.map(e => '<div class="hint" style="padding:1px 0;color:' + (e.k === 'ok' ? '#b4e08e' : e.k === 'no' ? '#f0b8a0' : '#9fb3c8') + '">' + (e.k === 'ok' ? '✔ ' : e.k === 'no' ? '✖ ' : '• ') + e.y + ' T' + e.w + ': ' + esc(e.t) + '</div>').join('');
+  return h + '</div>';
+}
+function dgTab() {
+  let h = '<p class="hint">Giao việc cho quan viên ở trị sở. <b>Mặc định tắt hết</b>; bật chức nào thì quan làm theo ngân sách, chính sách và chỉ tiêu bạn đặt, mỗi tuần một nhịp, qua đúng các hàm xây/mua/mộ của người chơi (đúng luật, đúng chi phí). Bạn tắt ngay lập tức được, và vẫn xây/phá tay bình thường. Quan giỏi làm sáng suốt hơn; quan tham xén bớt tiền (tính vào ngân sách).</p>';
+  for (const role of ['xd', 'kt', 'qs', 'tt']) h += dgCard(role);
+  return h;
+}
+const DGPATH = (patch, p, v) => { const ps = p.split('.'); if (ps.length === 1) patch[ps[0]] = v; else (patch[ps[0]] = patch[ps[0]] || {})[ps[1]] = v; return patch; };
+ACT.dgIn = el => { const t = el.dataset.t, v = t === 'n' ? Math.max(0, Math.floor(+el.value || 0)) : t === 'b' ? el.checked : el.value; const r = LT.dgSet(G, el.dataset.r, DGPATH({}, el.dataset.p, t === 's' && /^\d+$/.test(v) && /tax/.test(el.dataset.p) ? +v : v)); if (!r.ok) toast(r.err, 'bad'); renderOfficials(); };
+ACT.dgOn = el => { const D = LT.dg(G), r = LT.dgSet(G, el.dataset.r, { on: !D[el.dataset.r].on }); if (!r.ok) toast(r.err, 'bad'); renderOfficials(); ui(); };
+ACT.dgAppoint = el => { if (!el.value) return; const role = el.dataset.r; offDone(LT.offAppoint(G, +el.value, { t: 'seat', role: LT.DG_ROLES[role].seat }), 'Đã bổ nhiệm'); };
+ACT.dgFire = el => { const O = LT.off(G), o = LT.offById(G, O.seat[LT.DG_ROLES[el.dataset.r].seat]); if (o) LT.offUnpost(G, o); renderOfficials(); };
+ACT.dgNogoAdd = () => { const g = id => +document.getElementById(id).value; LT.dgNogo(G, g('ngx'), g('ngy'), g('ngr'), true); renderOfficials(); };
+ACT.dgNogoDel = el => { const z = LT.dg(G).nogo[+el.dataset.i]; if (z) LT.dgNogo(G, z.x, z.y, 0, false); renderOfficials(); };
 function renderOfficials(first) {
   const O = LT.off(G), t = UI.tab.off; let body = '';
   const cities = LT.ownedCities(G), idle = O.list.filter(o => !o.post), vac = cities.filter(c => !c.quan);
   body += '<div class="hint">Quan viên: <b>' + O.list.length + '</b>/' + Math.floor(LT.offMax(G)) + ' · chưa có việc <b>' + idle.length + '</b> · thành khuyết quan <b class="' + (vac.length ? 'neg' : '') + '">' + vac.length + '</b> (chạy 60% hiệu suất). Bổng lộc trả mỗi tháng; thiếu tiền thì nợ bổng, trung thành tụt, tham ô tăng.</div>';
-  if (t === 'thanh') {
+  if (t === 'gv') { body += dgTab(); }
+  else if (t === 'thanh') {
     if (!cities.length) body += '<p class="mut">Bạn chưa có thành nào ngoài trị sở. Thăng Thứ sử để nhận huyện, hoặc đánh chiếm thành.</p>';
     else {
       body += '<div style="margin:8px 0;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="offFill" data-tip="Điền các thành đang khuyết bằng người hợp nhất: dùng quan chưa có việc trước, rồi mới chiêu thêm ứng viên đang có trong bảng tuyển">⚡ Bổ nhiệm nhanh các thành khuyết (' + vac.length + ')</button></div>';
@@ -47,12 +103,13 @@ function renderOfficials(first) {
   } else {
     body += '<p class="hint">Giúp việc ở trị sở (từ Thứ sử). Mỗi chức một người; quan tham thì bớt xén.</p>';
     for (const role in LT.SEAT_ROLES) {
+      if (LT.SEAT_ROLES[role].dg) continue;      // các chức giao việc có thẻ riêng ở tab Giao việc
       const R = LT.SEAT_ROLES[role], cur = LT.offById(G, O.seat[role]);
       body += '<div class="box" style="margin:6px 0"><b>' + R.n + '</b> — ' + R.d + '<div style="margin-top:6px">' + (cur ? '<b>' + esc(cur.name) + '</b> ' + offStats(cur) + ' ' + trK(cur) + ' · ' : '<span class="mut">để trống · </span>') + '<select class="sel" data-chg="offSeat" data-role="' + role + '"><option value="">— chọn —</option>' + O.list.filter(o => !o.post || (o.post.t === 'seat' && o.post.role === role)).map(o => '<option value="' + o.id + '"' + (cur && cur.id === o.id ? ' selected' : '') + '>' + esc(o.name) + ' (chính ' + Math.round(o.chinh) + ', trí ' + Math.round(o.tri) + ', thống ' + Math.round(o.tong) + ')</option>').join('') + '</select>' + (cur ? ' <button class="btn2" data-act="offSeatClear" data-role="' + role + '">Bỏ chức</button>' : '') + '</div></div>';
     }
     if (G.rank < 2) body += '<div class="hint neg">Chức ở trị sở mở từ Thứ sử.</div>';
   }
-  const html = shell('👥 Quan viên', [['thanh', 'Theo thành'], ['ds', 'Danh sách & khảo khóa'], ['nguon', 'Tuyển người'], ['chuc', 'Chức ở trị sở']], t, 'offTab', body);
+  const html = shell('👥 Quan viên', [['gv', 'Giao việc'], ['thanh', 'Theo thành'], ['ds', 'Danh sách & khảo khóa'], ['nguon', 'Tuyển người'], ['chuc', 'Chức ở trị sở']], t, 'offTab', body);
   if (first || !modalOpen() || UI.panel !== 'officials') openModal(html, 'wide xw'); else setModal(html);
 }
 const offDone = (r, okTxt) => { toast(r.ok ? okTxt : r.err, r.ok ? 'good' : 'bad'); renderOfficials(); ui(); };

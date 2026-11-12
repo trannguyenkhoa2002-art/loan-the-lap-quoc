@@ -1,6 +1,6 @@
 // Giai đoạn 1 (hiệu năng): chọn vùng (chunk) theo khung nhìn, chữ ký thay đổi, và bản lưu không đổi.
 const path = require('path');
-for (const f of ['data', 'city', 'chunks', 'economy', 'game', 'battle', 'politics', 'war', 'events', 'world', 'wcities', 'campaign', 'trade', 'officials']) require(path.join(__dirname, '..', 'js', f + '.js'));
+for (const f of ['data', 'city', 'chunks', 'economy', 'game', 'battle', 'politics', 'war', 'events', 'world', 'wcities', 'campaign', 'trade', 'officials', 'automgmt']) require(path.join(__dirname, '..', 'js', f + '.js'));
 const LT = globalThis.LT; let fails = 0;
 const ok = (c, m) => { if (!c) { fails++; console.log('  FAIL  ' + m); } else console.log('  ok    ' + m); };
 const N = LT.N, CH = LT.CH, GW = LT.chunkGrid(N), TW = 64, TH = 32;

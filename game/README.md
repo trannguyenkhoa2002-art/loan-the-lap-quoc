@@ -101,3 +101,9 @@ Kiểm thử: `node tests/battle.test.js`, `sim.test.js`, `war2.test.js`, `round
 - **Zoom mượt**: lệnh zoom chỉ đặt mức đích; mỗi khung tiến dần quanh vị trí con trỏ. Đang zoom thì co giãn ảnh đã có; ngừng zoom một nhịp mới vẽ lại sắc nét.
 - **Đồ họa Thấp / Trung bình / Cao** (☰ Trình đơn, lưu trong localStorage `lt-gfx`, không nằm trong bản lưu; mặc định theo máy, tự hạ một bậc nếu máy chậm ngay từ đầu). **Bộ đếm hiệu năng**: phím F3 hoặc ☰ Trình đơn.
 - Đo: `tests/bench-browser.js` (kịch bản lặp lại được), `tests/round6.test.js` (chọn vùng, chữ ký, bản lưu). Định dạng bản lưu không đổi (phiên bản 8).
+
+## Giai đoạn 2 — Quản lý tự động
+
+- `js/automgmt.js` (logic thuần), thẻ "Giao việc" ở tab Quan viên (`js/ui-off.js`): bốn chức — Quan xây dựng, Quan kinh tế, Quan quân sự, Tổng quản các thành. Mỗi chức: bổ nhiệm/bãi, công tắc bật/tắt tức thì, ngân sách theo quý hoặc năm, chính sách, chỉ tiêu, nhật ký (làm gì, tốn bao nhiêu, vì sao; không làm được vì sao).
+- Quan xây dựng đặt qua `LT.place` của người chơi (đúng luật địa hình, nối đường, chi phí; kèm lát đường nối), không bao giờ phá công trình; có vùng cấm. Quan kinh tế chỉnh thuế trong khoảng cho phép, mua lương, bán hàng dư. Quan quân sự mộ quân tới mục tiêu theo cơ cấu binh chủng. Tổng quản điền chức khuyết, luân chuyển, thanh tra.
+- Mặc định tắt hết; không bật thì không tiêu bộ ngẫu nhiên (bot vẫn Vương 943, Hoàng đế 946). Bản lưu: vẫn phiên bản 8, trường mới tự điền mặc định tắt; `LT.SAVE_MIGRATE` sẵn cho các lần đổi định dạng sau (bản < 8 vẫn bị từ chối). Test: `tests/round7.test.js`, tệp thử bản lưu v8 thật `tests/fixtures/save-v8.json`.

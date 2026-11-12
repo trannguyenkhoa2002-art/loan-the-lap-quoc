@@ -217,6 +217,7 @@ LT.offWeek = function (G) {
     }
   }
   if (quarter) for (const c of cs) if (c.mine && c.id !== G.seatId) quarterDecision(G, c, LT.offById(G, c.quan));
+  if (LT.dgWeek) LT.dgWeek(G);      // giai đoạn 2: quan phụ trách tự làm việc (mặc định tắt)
 };
 function quarterDecision(G, c, o) {
   (c.hist = c.hist || []).push({ y: G.year, w: G.week, ho: c.ho, grain: Math.round(c.grain), last: Math.round(c.last || 0), dt: Math.round(c.dt), gar: c.gar }); if (c.hist.length > 10) c.hist.shift();
