@@ -34,9 +34,12 @@ const lastGrade = G => { const h = G.khao && G.khao.history; return h && h.lengt
 LT.courtControl = function (G) {
   const C = LT.pw(G).court; let tot = 0, yes = 0;
   for (const id in C.f) { const f = C.f[id]; tot += f.power; yes += f.power * clamp((f.att + 15) / 95, 0, 1); }
-  return clamp((tot ? yes / tot : 0) * .74 + Math.min(C.agents, 10) * .02 + (C.king.puppet ? .05 : 0), 0, 1);
+  const raw = (tot ? yes / tot : 0) * .74 + Math.min(C.agents, 10) * .02 + (C.king.puppet ? .05 : 0);
+  return clamp(Math.min(raw, LT.ctlCap(G)), 0, 1);
 };
 const army = G => LT.armyCount(G);
+// trần kiểm soát: chức thấp, ít quân, ít tiền thì không thể khống chế triều
+LT.ctlCap = function (G) { const P = LT.pw(G); return clamp(.1 + (G.rank || 0) * .07 + Math.min(1, army(G) / Math.max(1, LT.armyCap(G) * .5)) * .12 + Math.min(1, (G.res.tien || 0) / 3000) * .08 + (P.tt || 0) * .06, 0, 1); };
 LT.pwScores = function (G) {
   const P = LT.pw(G), C = P.court, st = G.stat, gr = lastGrade(G), rfn = Object.keys(P.rf).length;
   const part = (t, v) => ({ t, v: Math.round(v * 10) / 10 });
@@ -95,11 +98,11 @@ const cdSet = (G, key, n) => { LT.pw(G).court.cool[key] = G.tick + n; };
 const spend = (G, tien, label) => { if (G.res.tien < tien) return false; LT.addRes(G, 'tien', -tien, label); return true; };
 const FN = id => LT.COURT_FACTIONS[id].n;
 LT.PW_ACTS = {
-  ketgiao: { n: 'Kết giao', cost: 80, d: 'Thiện cảm +6 đến +10 theo Chính của bạn; mỗi phe cách 18 tuần một lần.' },
-  tiencu: { n: 'Tiến cử người của mình', cost: 30, d: 'Đưa một quan rảnh vào triều (người của bạn +1), phe được tiến cử mến +6.' },
-  danhac: { n: 'Đàn hặc', cost: 40, d: 'Dâng sớ hặc phe đối thủ: thắng thì thế lực họ −10; thua thì Thanh danh −5, nghi kỵ +6, bị phản đòn.' },
-  muachuoc: { n: 'Mua chuộc', cost: 120, d: 'Thiện cảm +18 ngay, nhưng đút lót để lại tội: lộ ra thì bị đàn hặc, giáng chức.' },
-  lienhon: { n: 'Liên hôn, kết minh', cost: 200, d: 'Thiện cảm +25, thành đồng minh bền của bạn, Chính danh +4 (mỗi phe một lần). Từ chức Thứ sử.' },
+  ketgiao: { n: 'Kết giao', cost: 160, cd: 36, d: 'Thiện cảm +6 đến +10 theo Chính của bạn; mỗi phe cách 36 tuần một lần. Thiện cảm tự phai dần nếu không duy trì.' },
+  tiencu: { n: 'Tiến cử người của mình', cost: 90, cd: 27, d: 'Đưa một quan rảnh vào triều (người của bạn +1), phe được tiến cử mến +4. Mỗi phe cách 27 tuần.' },
+  danhac: { n: 'Đàn hặc', cost: 90, cd: 18, d: 'Dâng sớ hặc phe đối thủ: thắng thì thế lực họ −10; thua thì Thanh danh −5, nghi kỵ +6, bị phản đòn.' },
+  muachuoc: { n: 'Mua chuộc', cost: 320, cd: 36, d: 'Thiện cảm +18 ngay, nhưng đút lót để lại tội: lộ ra thì bị đàn hặc, giáng chức.' },
+  lienhon: { n: 'Liên hôn, kết minh', cost: 500, d: 'Thiện cảm +25, thành đồng minh bền của bạn, Chính danh +4 (mỗi phe một lần). Từ chức Thứ sử.' },
 };
 LT.pwAct = function (G, id, f) {
   const P = LT.pw(G), C = P.court, A = LT.PW_ACTS[id], F = LT.COURT_FACTIONS[f];
@@ -107,16 +110,16 @@ LT.pwAct = function (G, id, f) {
   if (!cdOk(G, id + ':' + f)) return { ok: false, err: 'Phe ' + FN(f) + ' vừa tiếp xúc, đợi ' + (C.cool[id + ':' + f] - G.tick) + ' tuần' };
   if (G.res.tien < A.cost) return { ok: false, err: 'Cần ' + A.cost + ' quan' };
   let text = '';
-  if (id === 'ketgiao') { spend(G, A.cost, 'Kết giao ' + FN(f)); const dv = Math.round(6 + G.player.chinh / 25); bump(G, f, dv); text = 'Kết giao phe ' + FN(f) + ': thiện cảm +' + dv + '.'; cdSet(G, id + ':' + f, 18); }
+  if (id === 'ketgiao') { spend(G, A.cost, 'Kết giao ' + FN(f)); const dv = Math.round(6 + G.player.chinh / 25); bump(G, f, dv); text = 'Kết giao phe ' + FN(f) + ': thiện cảm +' + dv + '.'; cdSet(G, id + ':' + f, A.cd); }
   else if (id === 'tiencu') {
     const idle = LT.off(G).list.filter(o => !o.post).sort((a, b) => b.chinh - a.chinh)[0]; if (!idle) return { ok: false, err: 'Không có quan rảnh để tiến cử (xem tab Quan viên)' }; if (C.agents >= 10) return { ok: false, err: 'Triều đã đầy người của bạn (tối đa 10)' };
-    spend(G, A.cost, 'Tiến cử ' + idle.name); LT.offDismiss(G, idle.id); C.agents++; C.agentNames.push(idle.name); bump(G, f, 4); text = 'Tiến cử ' + idle.name + ' vào triều dưới trướng phe ' + FN(f) + ' (người của bạn: ' + C.agents + ').'; cdSet(G, id + ':' + f, 9);
+    spend(G, A.cost, 'Tiến cử ' + idle.name); LT.offDismiss(G, idle.id); C.agents++; C.agentNames.push(idle.name); bump(G, f, 4); text = 'Tiến cử ' + idle.name + ' vào triều dưới trướng phe ' + FN(f) + ' (người của bạn: ' + C.agents + ').'; cdSet(G, id + ':' + f, A.cd);
   } else if (id === 'danhac') {
     spend(G, A.cost, 'Đàn hặc ' + FN(f)); const x = C.f[f], me = LT.courtControl(G) * 40 + C.agents * 4 + G.player.thanhdanh * .3 + G.player.uyvong * .15, them = x.power * .6 + Math.max(0, x.att < 0 ? 10 : 0), p = clamp(.3 + (me - them) / 100, .1, .9), roll = hash(G.tick * 7 + 3, f.length * 11 + C.hit + C.agents);
-    C.manip++; cdSet(G, id + ':' + f, 9);
+    C.manip++; cdSet(G, id + ':' + f, A.cd);
     if (roll / 100 < p) { x.power = Math.max(2, x.power - 10); bump(G, f, -15); text = 'Đàn hặc phe ' + FN(f) + ' thành công: thế lực −10 (cơ hội ' + Math.round(p * 100) + '%).'; }
     else { G.player.thanhdanh = clamp(G.player.thanhdanh - 5, 0, 100); G.nghiky = clamp(G.nghiky + 6, 0, 100); C.hit++; bump(G, f, -10); text = 'Đàn hặc phe ' + FN(f) + ' THẤT BẠI (cơ hội ' + Math.round(p * 100) + '%): Thanh danh −5, nghi kỵ +6, phe ấy ghi hận.'; }
-  } else if (id === 'muachuoc') { spend(G, A.cost, 'Mua chuộc ' + FN(f)); bump(G, f, 18); C.graft += 1.5; G.player.thanhdanh = clamp(G.player.thanhdanh - 2, 0, 100); text = 'Mua chuộc phe ' + FN(f) + ': thiện cảm +25, nhưng để lại tội đút lót (' + C.graft.toFixed(1).replace('.', ',') + ').'; cdSet(G, id + ':' + f, 9); }
+  } else if (id === 'muachuoc') { spend(G, A.cost, 'Mua chuộc ' + FN(f)); bump(G, f, 18); C.graft += 1.5; G.player.thanhdanh = clamp(G.player.thanhdanh - 2, 0, 100); text = 'Mua chuộc phe ' + FN(f) + ': thiện cảm +25, nhưng để lại tội đút lót (' + C.graft.toFixed(1).replace('.', ',') + ').'; cdSet(G, id + ':' + f, A.cd); }
   else if (id === 'lienhon') { if (G.rank < 2) return { ok: false, err: 'Mở từ chức Thứ sử' }; if (C.ally[f]) return { ok: false, err: 'Đã liên hôn với phe này' }; spend(G, A.cost, 'Liên hôn ' + FN(f)); bump(G, f, 25); C.ally[f] = true; G.chinhdanh = clamp(G.chinhdanh + 4, 0, 100); text = 'Liên hôn với phe ' + FN(f) + ': thiện cảm +25, trở thành đồng minh; Chính danh +4.'; }
   P.engaged = true; cLog(G, text); LT.log(G, text, ''); return { ok: true, text };
 };
@@ -174,11 +177,11 @@ LT.pwDefect = function (G, nid) {
 
 // ---------- thành tựu ----------
 LT.ACH = {
-  thaotung: { n: 'Thao túng triều đình', i: '🎭', d: 'Giữ kiểm soát triều đình ≥ 60% suốt 2 năm (hoặc làm quyền thần với vua bù nhìn), không xưng đế.', prog: G => { const P = LT.pw(G); return { v: Math.min(8, P.court.ctlQ) / 8, t: 'kiểm soát ' + Math.round(LT.courtControl(G) * 100) + '%, giữ ' + Math.floor(P.court.ctlQ / 4 * 10) / 10 + '/2 năm' }; }, ok: G => G.rank < 6 && (LT.pw(G).court.ctlQ >= 8 || (LT.pw(G).court.king.puppet && LT.pw(G).court.ctlQ >= 4)) },
+  thaotung: { n: 'Thao túng triều đình', i: '🎭', d: 'Giữ kiểm soát triều đình ≥ 55% suốt 3,5 năm (hoặc làm quyền thần với vua bù nhìn 1,75 năm), phải là Tiết độ sứ trở lên hoặc giữ chức Thượng thư; không xưng đế.', prog: G => { const P = LT.pw(G); return { v: Math.min(14, P.court.ctlQ) / 14, t: 'kiểm soát ' + Math.round(LT.courtControl(G) * 100) + '% (trần ' + Math.round(LT.ctlCap(G) * 100) + '%), giữ ' + Math.floor(P.court.ctlQ / 4 * 10) / 10 + '/3,5 năm' }; }, ok: G => G.rank < 6 && (G.rank >= 4 || LT.pw(G).tt >= 2) && (LT.pw(G).court.ctlQ >= 14 || (LT.pw(G).court.king.puppet && LT.pw(G).court.ctlQ >= 7)) },
   chinhphuc: { n: 'Chinh phục, kiểm soát các nước', i: '🌏', d: 'Giữ ≥ 40 thành, hoặc nắm ≥ 3 kinh đô.', prog: G => { const caps = G.world.cities.filter(c => c.mine && c.capital).length; return { v: Math.max(LT.mineCount(G) / 40, caps / 3), t: LT.mineCount(G) + '/40 thành, ' + caps + '/3 kinh đô' }; }, ok: G => LT.mineCount(G) >= 40 || G.world.cities.filter(c => c.mine && c.capital).length >= 3 },
   kinhte: { n: 'Bá chủ kinh tế', i: '💰', d: 'Lãi buôn bán và thuế quá cảnh cộng dồn ≥ 3.000 quan, phường thị từ Chợ thường.', prog: G => { const L = G.trade2 && G.trade2.ledger, s = L ? Math.max(0, L.mk) + Math.max(0, L.car) + Math.max(0, L.sea) + Math.max(0, L.transit) : 0; return { v: Math.min(1, s / 3000), t: Math.round(s) + '/3.000 quan' }; }, ok: G => { const L = G.trade2 && G.trade2.ledger; if (!L) return false; return Math.max(0, L.mk) + Math.max(0, L.car) + Math.max(0, L.sea) + Math.max(0, L.transit) >= 3000 && LT.marketTier(G) >= 2; } },
   quansu: { n: 'Thế lực quân sự hùng mạnh', i: '⚔️', d: 'Binh lực ≥ 15.000 và thắng ≥ 10 trận.', prog: G => ({ v: Math.min(army(G) / 15000, (G.wins || 0) / 10), t: LT.fmtN(army(G)) + '/15.000 quân, ' + (G.wins || 0) + '/10 trận thắng' }), ok: G => army(G) >= 15000 && (G.wins || 0) >= 10 },
-  trungthan: { n: 'Trung thần, vùng đất thịnh vượng', i: '🏛️', d: 'Làm trọng thần (Thượng thư trở lên), không cát cứ, Văn trị ≥ 58 suốt 2 năm.', prog: G => { const P = LT.pw(G); return { v: Math.min(1, P.tt / 2 * .5 + P.q.vanHold / 8 * .5), t: 'chức ' + (LT.TRONG_THAN[P.tt] ? LT.TRONG_THAN[P.tt].n : 'chưa có') + ', Văn trị ≥ 58 giữ ' + Math.floor(P.q.vanHold / 4 * 10) / 10 + '/2 năm' }; }, ok: G => { const P = LT.pw(G); return P.tt >= 2 && P.stance !== 'cat' && !G.indep && P.q.vanHold >= 8 && G.nghiky < 30; } },
+  trungthan: { n: 'Trung thần, vùng đất thịnh vượng', i: '🏛️', d: 'Làm trọng thần (Thượng thư trở lên), không cát cứ, Văn trị ≥ 58 suốt 3,5 năm kể từ khi giữ chức ấy.', prog: G => { const P = LT.pw(G); return { v: Math.min(1, P.tt / 2 * .5 + P.q.vanHold / 14 * .5), t: 'chức ' + (LT.TRONG_THAN[P.tt] ? LT.TRONG_THAN[P.tt].n : 'chưa có') + ', Văn trị ≥ 58 giữ ' + Math.floor(P.q.vanHold / 4 * 10) / 10 + '/3,5 năm' }; }, ok: G => { const P = LT.pw(G); return P.tt >= 2 && P.stance !== 'cat' && !G.indep && P.q.vanHold >= 14 && G.nghiky < 30; } },
   catcu: { n: 'Cát cứ lâu dài', i: '🏰', d: 'Giữ danh nghĩa cát cứ, tự chủ ≥ 70, không bị diệt suốt 5 năm.', prog: G => { const P = LT.pw(G); return { v: P.stance === 'cat' ? Math.min(1, P.q.catQ / 20) : 0, t: P.stance === 'cat' ? 'tự chủ ' + Math.round(P.tuchu) + ', giữ ' + Math.floor(P.q.catQ / 4 * 10) / 10 + '/5 năm' : 'chưa cát cứ' }; }, ok: G => { const P = LT.pw(G); return P.stance === 'cat' && P.tuchu >= 70 && P.q.catQ >= 20 && LT.mineCount(G) >= 3; } },
   hoangde: { n: 'Xưng đế (nhánh quan lộ)', i: '👑', d: 'Lên bậc Hoàng đế: nhánh cổ điển của quan lộ, không bắt buộc.', prog: G => ({ v: G.rank / 6, t: LT.RANKS[G.rank].n }), ok: G => G.rank >= 6 },
   thongnhat: { n: 'Thống nhất thiên hạ (nhánh)', i: '🌐', d: 'Giữ ≥ 90 thành, gồm kinh đô Trung Nguyên. Ván vẫn chơi tiếp.', prog: G => ({ v: Math.min(1, LT.mineCount(G) / 90), t: LT.mineCount(G) + '/90 thành' }), ok: G => LT.mineCount(G) >= 90 && G.world.cities[G.world.capIds[0]].mine },
@@ -196,7 +199,8 @@ LT.pwWeek = function (G) {
   // 1) phe phái trôi về lập trường theo việc bạn làm
   const mil = Math.min(1, army(G) / Math.max(1, LT.armyCap(G))), sc0 = P.stance;
   const tg = { huancuu: 8 + (mil - .3) * 55 + (sc0 === 'cat' ? 18 : sc0 === 'trung' ? -4 : 0) + (P.rf.chinhdon ? -6 : 0), vanthan: 6 + (gr ? ({ thuong: 18, trung: 8, ha: -8 })[gr.gid || gr.id] || 0 : 0) + (P.rf.doluong ? 6 : 0) + (P.rf.chinhdon ? 8 : 0) - (C.king.puppet ? 30 : 0) - (sc0 === 'cat' ? 18 : 0), ngoaithich: (sc0 === 'trung' ? 12 : sc0 === 'cat' ? -22 : -4) + (G.nghiky > 50 ? -15 : 0) - (C.king.puppet ? 25 : 0), noithan: -2 + (P.rf.chinhdon ? -6 : 0) + C.graft * 3 - (C.hit ? C.hit * 2 : 0) };
-  for (const id in C.f) { const f = C.f[id]; f.bias *= .95; if (C.ally[id]) f.att = Math.max(f.att, 25); if (P.engaged) { f.att = clamp(f.att + (clamp(tg[id] + f.bias, -100, 100) - f.att) * .3, -100, 100); } f.power = clamp(f.power + (hash(G.tick, id.length * 9) - 50) / 90, 5, 90); }
+  const ctl0 = LT.courtControl(G);
+  for (const id in C.f) { const f = C.f[id]; f.bias *= .9; if (!C.ally[id]) { f.att *= .95; if (ctl0 > .45) f.att -= (ctl0 - .45) * 12; } if (C.ally[id]) f.att = Math.max(f.att, 25); if (P.engaged) { f.att = clamp(f.att + (clamp(tg[id] + f.bias, -100, 100) - f.att) * .25, -100, 100); } f.power = clamp(f.power + (hash(G.tick, id.length * 9) - 50) / 90, 5, 90); }
   // 2) cải cách hết hạn, tham ô giảm dần
   for (const id in P.rf) { const r = P.rf[id]; r.left -= 9; if (id === 'chinhdon') { for (const c of LT.ownedCities(G)) c.tamo = Math.max(.01, c.tamo * .7); for (const o of LT.off(G).list) if (o.post) o.trung = clamp(o.trung - 2, 0, 100); } if (r.left <= 0) { delete P.rf[id]; G.lab.budget = LT.laoDichBudget(G); pwLog(G, 'Cải cách "' + LT.REFORMS[id].n + '" hết hạn.', ''); } }
   // 3) bổng chức triều
@@ -204,7 +208,7 @@ LT.pwWeek = function (G) {
   // 4) tự chủ với triều trôi về mức theo danh nghĩa
   if (P.engaged) P.tuchu = clamp(P.tuchu + (LT.PW_STANCE[P.stance].target - P.tuchu) * .14, 0, 100);
   // 5) bộ đếm giữ điều kiện
-  const sc = LT.pwScores(G); C.ctlQ = sc.ctl >= .6 ? C.ctlQ + 1 : 0; P.q.vanHold = sc.van.v >= 58 ? P.q.vanHold + 1 : 0; P.q.catQ = P.stance === 'cat' && P.tuchu >= 60 ? P.q.catQ + 1 : (P.stance === 'cat' ? P.q.catQ : 0);
+  const sc = LT.pwScores(G); C.ctlQ = sc.ctl >= .55 ? C.ctlQ + 1 : Math.max(0, C.ctlQ - 2); P.q.vanHold = sc.van.v >= 58 && P.tt >= 2 ? P.q.vanHold + 1 : Math.max(0, P.q.vanHold - 2); P.q.catQ = P.stance === 'cat' && P.tuchu >= 60 ? P.q.catQ + 1 : (P.stance === 'cat' ? P.q.catQ : 0);
   P.hist.push({ y: G.year, w: G.week, van: sc.van.v, chinh: sc.chinh.v, quan: sc.quan.v }); if (P.hist.length > 40) P.hist.shift();
   // 6) triều đình phản ứng và phản đòn — chỉ khi bạn đã dùng tính năng mới
   if (P.engaged) { reaction(G, P, C, sc); backlash(G, P, C, sc); }

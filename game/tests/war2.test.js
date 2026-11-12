@@ -1,7 +1,7 @@
 // Vòng 2: quân từ dân, thành, chiến dịch, đại chiến > 100.000 quân, tự động chơi tới bậc Vương, lưu/tải.
 // Chạy: node tests/war2.test.js
 const path = require('path');
-for (const f of ['data', 'city', 'economy', 'game', 'battle', 'politics', 'war', 'events', 'world', 'wcities', 'campaign', 'trade', 'officials', 'automgmt', 'power']) require(path.join(__dirname, '..', 'js', f + '.js'));
+for (const f of ['data', 'city', 'economy', 'game', 'battle', 'politics', 'war', 'events', 'world', 'wcities', 'campaign', 'trade', 'officials', 'automgmt', 'power', 'ai']) require(path.join(__dirname, '..', 'js', f + '.js'));
 const LT = globalThis.LT;
 let fails = 0;
 const ok = (c, m) => { if (!c) { fails++; console.log('  FAIL  ' + m); } else console.log('  ok    ' + m); };

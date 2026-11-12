@@ -24,8 +24,9 @@ LT.initWorld = function (G) {
   w.ns[G.nation].stab = 62;
   LT.initCities(G);
   addChron(G, 'Năm 917: thiên hạ chia mười hai nước. Bạn nhậm chức tri huyện ở nước ' + NAT[G.nation].n + '.');
+  if (LT.aiInit) LT.aiInit(G);
 };
-const addChron = (G, t) => { G.world.chron.unshift({ y: G.year, w: G.week, t }); if (G.world.chron.length > 60) G.world.chron.length = 60; if (LT.onChron) LT.onChron(t); };
+const addChron = (G, t, k, ids) => { const e = { y: G.year, w: G.week, t }; if (k) e.k = k; if (ids && ids.length) e.n = ids; G.world.chron.unshift(e); if (G.world.chron.length > 160) G.world.chron.length = 160; if (LT.onChron) LT.onChron(t); };
 LT.addChron = addChron;
 LT.natName = (G, i) => i === 12 ? ((G.world.ns[12] && G.world.ns[12].n) || 'Nước của bạn') : ((G.world && G.world.names[i]) || NAT[i].n);
 LT.natAlive = (G, i) => G.world.ns[i].alive;
@@ -47,6 +48,7 @@ LT.persuasion = function (G, nid, gift) {
   return { parts, total: Math.round(parts.reduce((a, p) => a + p.v, 0) * 10) / 10 };
 };
 // quan hệ giữa hai nước máy (tính từ tính cách và láng giềng)
+LT.relNat = relNat;
 function relNat(G, i, j) {
   const adj = NAT[i].adj.indexOf(j) >= 0, a = NAT[i].chr, b = NAT[j].chr;
   let r = adj ? -20 : 5; if (a === 'hiếu chiến') r -= 15; if (b === 'hiếu chiến') r -= 10; if (a === 'trọng thương' && b === 'trọng thương') r += 25;
@@ -74,7 +76,7 @@ LT.sendGift = function (G, nid, lv) {
   if (G.res.tien < c) return { ok: false, err: 'Cần ' + c + ' quan' };
   G.res.tien -= c; LT.flowAdd(G, 'tien', -c, 'Lễ vật ngoại giao');
   const g1 = Math.round(Math.min(35, c / 7) * (NAT[nid].chr === 'trọng thương' ? 1.3 : 1) * (NAT[nid].chr === 'hiếu chiến' ? .7 : 1));
-  G.world.rel[nid] = clamp(G.world.rel[nid] + g1, -100, 100); G.world.gifts[nid] = (G.world.gifts[nid] || 0) + c;
+  G.world.rel[nid] = clamp(G.world.rel[nid] + g1, -100, 100); G.world.gifts[nid] = (G.world.gifts[nid] || 0) + c; if (G.world.ai) G.world.ai.pm[nid].fav = Math.min(200, G.world.ai.pm[nid].fav + c / 8);
   addChron(G, 'Bạn biếu ' + LT.natName(G, nid) + ' lễ vật ' + c + ' quan; quan hệ +' + g1 + '.');
   return { ok: true, text: 'Quan hệ với ' + LT.natName(G, nid) + ' +' + g1 + ' (' + Math.round(G.world.rel[nid]) + ').' };
 };
@@ -101,7 +103,7 @@ function w_rel(G, nid, d) { G.world.rel[nid] = clamp(G.world.rel[nid] + d, -100,
 LT.breakRelations = function (G, nid) {
   if (!G.world.ns[nid].alive) return { ok: false, err: 'Nước này đã bị diệt' };
   w_rel(G, nid, -30); for (const k in G.treaties) { const i = G.treaties[k].indexOf(nid); if (i >= 0) G.treaties[k].splice(i, 1); }
-  G.player.tin = clamp(G.player.tin - 6, 0, 100);
+  G.player.tin = clamp(G.player.tin - 6, 0, 100); if (G.world.ai) { G.world.ai.pm[nid].br += 1; G.world.ai.pm[nid].gr = Math.min(200, G.world.ai.pm[nid].gr + 12); }
   addChron(G, 'Bạn tuyệt giao với ' + LT.natName(G, nid) + '.');
   return { ok: true, text: 'Tuyệt giao với ' + LT.natName(G, nid) + ': quan hệ −30, Tín −6, mọi giao ước chấm dứt.' };
 };
@@ -116,6 +118,7 @@ LT.worldWeek = function (G) {
     if (G.res.tien >= 40) { G.res.tien -= 40; LT.flowAdd(G, 'tien', -40, 'Triều cống ' + LT.natName(G, nid)); w.rel[nid] = clamp(w.rel[nid] + 3, -100, 100); }
     else { w.tribute.splice(w.tribute.indexOf(nid), 1); const i = G.treaties.xungthan.indexOf(nid); if (i >= 0) G.treaties.xungthan.splice(i, 1); w.rel[nid] -= 15; LT.log(G, 'Không đủ tiền triều cống ' + LT.natName(G, nid) + ': giao ước tan vỡ.', 'bad'); }
   }
+  if (LT.aiWeek) LT.aiWeek(G);
   if (G.week % 3 !== 0) return;
   // quan hệ trôi về mức nền theo tính cách; ngoại giao thông thương nâng quan hệ
   for (let i = 0; i < 12; i++) {
@@ -128,7 +131,7 @@ LT.worldWeek = function (G) {
   // ổn định, quân của các nước dao động
   for (const n of w.ns) { if (!n.alive) continue; n.stab = clamp(n.stab + (LT.rand(G) - .5) * 3, 10, 95); n.army = clamp(n.army + (LT.rand(G) - .5) * 4, 15, 95); }
   // chiến tranh giữa các nước máy: mỗi ~12 tuần
-  if (G.tick - w.lastCheck >= 12) { w.lastCheck = G.tick; LT.aiWar(G); }
+  if (G.tick - w.lastCheck >= 12) { w.lastCheck = G.tick; if (!w.ai) LT.aiWar(G); }
   histEvents(G);
   // xâm lấn
   if (G.tick % 12 === 0 && !G.pendingBattle && !G.pendingEvent && !G.raid) LT.maybeInvade(G);

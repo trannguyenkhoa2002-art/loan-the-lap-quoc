@@ -50,12 +50,13 @@ LT.maybeInvade = function (G) {
     const chr = { 'hiếu chiến': 2.2, 'phản trắc': 1.3, 'thủ thành': .2, 'trọng thương': .45 }[NAT[j].chr];
     const rel = w.rel[j], relF = rel < -20 ? 1 + (-rel - 20) / 30 : rel > 20 ? .15 : .55;
     const kdBoost = (j === 10 && w.hist.khietdan) ? 2.5 : 1, hostile = (G.indep && j === G.nation) ? 5 : 1;
-    const p = .045 * chr * relF * kdBoost * hostile * (G.treaties.lienminh.length ? .6 : 1) * (G.rank >= 2 ? 1.2 : 1) * (G.rank >= 4 ? 1.4 : 1);
+    const p = .045 * chr * relF * kdBoost * hostile * (LT.aiInvadeMul ? LT.aiInvadeMul(G, j) : 1) * (G.treaties.lienminh.length ? .6 : 1) * (G.rank >= 2 ? 1.2 : 1) * (G.rank >= 4 ? 1.4 : 1);
     if (LT.rand(G) >= p) continue;
     // chọn thành bị đánh: thành giáp biên của nước đó (ưu tiên ngẫu nhiên)
     const targets = mine.filter(m => m.adj.some(x => cs[x].own === j && !cs[x].mine)), tgt = targets[Math.floor(LT.rand(G) * targets.length)] || c;
     const base = G.rank >= 3 ? Math.min(LT.natField(G, j) * (.12 + .06 * (G.rank - 2)), 1.5 * army + tgt.gar + 400) : LT.raidSize(G) * (.9 + w.ns[j].army / 150);
     const total = Math.round(Math.max(80, base * (j === 10 ? 1.25 : 1) * (G.treaties.lienminh.length ? .75 : 1)));
+    if (LT.aiNoteInvasion && w.ai) LT.aiNoteInvasion(G, j);
     LT.openInvasion(G, j, tgt, total);
     return;
   }
@@ -88,8 +89,8 @@ LT.afterBigBattle = function (G, pb, rep, won, lost, auto) {
   G.maxBattle = Math.max(G.maxBattle || 0, Math.min(rep.sum.A.start, rep.sum.B.start));
   if (pb.kind === 'nation' && pb.cityId != null && pb.cityId !== G.seatId) {
     const c = w.cities[pb.cityId];
-    if (lost) { LT.transferCity(G, c.id, pb.nation); c.mine = false; c.ho = Math.round(c.ho * .8); c.dt = 35; c.gar = Math.round(c.ho * .03); out.lines.push('Thành ' + c.n + ' thất thủ, rơi vào tay ' + LT.natName(G, pb.nation) + '.'); LT.addChron(G, 'Thành ' + c.n + ' của bạn thất thủ.'); LT.log(G, 'Mất thành ' + c.n + '!', 'bad'); }
-    else if (won) { out.lines.push('Thành ' + c.n + ' giữ được; dân tâm +4.'); c.dt = clamp(c.dt + 4, 0, 100); c.gar = Math.max(30, Math.round(c.gar * .8)); G.chinhdanh = clamp(G.chinhdanh + 2, 0, 100); }
+    if (lost) { LT.transferCity(G, c.id, pb.nation); c.mine = false; if (LT.occStart && w.ai) LT.occStart(G, c, 12); if (LT.aiNote) LT.aiNote(G, pb.nation, 'won'); c.ho = Math.round(c.ho * .8); c.dt = 35; c.gar = Math.round(c.ho * .03); out.lines.push('Thành ' + c.n + ' thất thủ, rơi vào tay ' + LT.natName(G, pb.nation) + '.'); LT.addChron(G, 'Thành ' + c.n + ' của bạn thất thủ.'); LT.log(G, 'Mất thành ' + c.n + '!', 'bad'); }
+    else if (won) { if (LT.aiNote) LT.aiNote(G, pb.nation, 'lost'); out.lines.push('Thành ' + c.n + ' giữ được; dân tâm +4.'); c.dt = clamp(c.dt + 4, 0, 100); c.gar = Math.max(30, Math.round(c.gar * .8)); G.chinhdanh = clamp(G.chinhdanh + 2, 0, 100); }
     else { out.lines.push('Thành ' + c.n + ' còn đứng, nhưng bị cướp phá.'); c.ho = Math.round(c.ho * .94); }
     if (auto) { if (won) G.player.uyvong = clamp(G.player.uyvong + 1, 0, 100); }
   }
@@ -189,7 +190,7 @@ LT.captureCity = function (G, c, how) {
   const w = G.world, old = c.own, oldNs = w.ns[old];
   const loss = c.gar; if (oldNs) oldNs.troops = Math.max(0, oldNs.troops - loss);
   c.own = G.indep ? 12 : G.nation; c.mine = true; c.ho = Math.round(c.ho * .85); c.dt = 35; c.wall = Math.round(c.wall * .6); c.gar = Math.round(c.ho * .03); c.grain = Math.round(c.grain * .3);
-  LT.manage(G, c); c.lowtax = 72; c.tan = 18; c.quan = null; c.dist = LT.hopsToSeat(G, c.id);
+  LT.manage(G, c); c.lowtax = 72; c.tan = 18; c.quan = null; c.dist = LT.hopsToSeat(G, c.id); if (LT.occStart && w.ai) { LT.occStart(G, c, old); c.gar = Math.round(c.ho * .02); if (LT.aiNote) LT.aiNote(G, old, 'lost'); if (w.ai.pm[old]) w.ai.pm[old].gr = Math.min(200, w.ai.pm[old].gr + 30); }
   LT.syncNations(G);
   G.world.rel[old] = clamp(G.world.rel[old] - 6, -100, 100); G.capturedN = (G.capturedN || 0) + 1; G.quanCong++; G.wins++; G.winsSince = (G.winsSince || 0) + 1;
   G.chinhdanh = clamp(G.chinhdanh + 3, 0, 100); G.player.uyvong = clamp(G.player.uyvong + 4, 0, 100); G.player.thanhdanh = clamp(G.player.thanhdanh + 1, 0, 100);

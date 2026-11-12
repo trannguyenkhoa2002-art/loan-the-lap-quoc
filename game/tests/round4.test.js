@@ -1,6 +1,6 @@
 // Vòng 4: phát lại trận theo thời gian (kế hoạch phát lại khớp tính tức thời) và mạch quặng sắt trên mọi bản đồ.
 const path = require('path');
-for (const f of ['data', 'city', 'economy', 'game', 'battle', 'politics', 'war', 'events', 'world', 'wcities', 'campaign', 'trade', 'officials', 'automgmt', 'power']) require(path.join(__dirname, '..', 'js', f + '.js'));
+for (const f of ['data', 'city', 'economy', 'game', 'battle', 'politics', 'war', 'events', 'world', 'wcities', 'campaign', 'trade', 'officials', 'automgmt', 'power', 'ai']) require(path.join(__dirname, '..', 'js', f + '.js'));
 const LT = globalThis.LT; let fails = 0;
 const ok = (c, m) => { if (!c) { fails++; console.log('  FAIL  ' + m); } else console.log('  ok    ' + m); };
 const calm = G => { G.pendingEvent = null; G.pendingBattle = null; G.raid = null; G.pendingKhao = null; G.pendingPromo = null; G.pendingNotice = null; };

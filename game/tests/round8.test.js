@@ -1,6 +1,6 @@
 // Giai đoạn 3: ba con đường quyền lực (văn trị, chính trị, quân sự–cát cứ), thành tựu mở, phản đòn, chuyển bản lưu 8 → 9.
 const path = require('path'), fs = require('fs');
-for (const f of ['data', 'city', 'chunks', 'economy', 'game', 'battle', 'politics', 'war', 'events', 'world', 'wcities', 'campaign', 'trade', 'officials', 'automgmt', 'power']) require(path.join(__dirname, '..', 'js', f + '.js'));
+for (const f of ['data', 'city', 'chunks', 'economy', 'game', 'battle', 'politics', 'war', 'events', 'world', 'wcities', 'campaign', 'trade', 'officials', 'automgmt', 'power', 'ai']) require(path.join(__dirname, '..', 'js', f + '.js'));
 const LT = globalThis.LT; let fails = 0;
 const ok = (c, m) => { if (!c) { fails++; console.log('  FAIL  ' + m); } else console.log('  ok    ' + m); };
 const advance = G => { let done = false; for (const b of G.bl) if (b.building) { b.progress += 1 / (b.duration || 12); if (b.progress >= 1) { b.progress = 1; b.building = false; b.born = -9; done = true; } } if (done) LT.recalcCity(G); };
@@ -12,9 +12,10 @@ function step(G, pick, log) {
   if (G.pendingBattle) { if (log) log.push('battle:' + G.pendingBattle.title); G.pendingBattle = null; }
   G.speed = 0;
 }
-const mk = (seed, rank) => { const G = LT.newGame(7, 'Q', seed); G.rank = rank || 3; LT.grantCities(G, 3, 1, 2); G.res.tien = 4000; G.res.go = 800; G.res.da = 500; G.res.luong = 2500; G.dan.luong = 2500; G.lab.budget = 5000; G.khao.history = [{ gid: 'thuong', grade: 'Hạng Thượng' }]; G.khao.thuong = 3; G.player.thanhdanh = 70; LT.recalcCity(G); return G; };
+const mk = (seed, rank, year) => { const G = LT.newGame(7, 'Q', seed); G.rank = rank || 3; if (year) G.year = year; LT.grantCities(G, 3, 1, 2); G.res.tien = 4000; G.res.go = 800; G.res.da = 500; G.res.luong = 2500; G.dan.luong = 2500; G.lab.budget = 5000; G.khao.history = [{ gid: 'thuong', grade: 'Hạng Thượng' }]; G.khao.thuong = 3; G.player.thanhdanh = 70; LT.recalcCity(G); return G; };
 const idleOfficial = G => { const o = LT.offGen(G, 'khoacu'); o.id = LT.off(G).nextId++; o.home = null; LT.off(G).list.push(o); return o; };
-const keepRich = G => { G.res.luong = Math.max(G.res.luong, 1500); G.dan.luong = Math.max(G.dan.luong, 1500); };
+const bigArmy = G => { G.units = ['truongthuong', 'cung', 'daothuan', 'khinhky', 'truongthuong'].map((t, i) => ({ id: i + 1, type: t, n: 2500, hl: 55, sk: 70, tb: 2, tan: 0 })); G.nextId = 10; G.wins = 12; LT.ensureFormation(G); };
+const keepRich = G => { G.khao.history = [{ gid: 'thuong', grade: 'Hạng Thượng' }]; G.res.luong = Math.max(G.res.luong, 1500); G.dan.luong = Math.max(G.dan.luong, 1500); };
 const yearsOf = (G, t) => t ? (t.y - 917) + (t.w - 1) / 36 : null;
 const FIDS = Object.keys(LT.COURT_FACTIONS);
 
@@ -31,18 +32,18 @@ console.log('--- 1. Ba thước đo và dữ liệu triều đình');
 console.log('--- 2. Hướng Văn trị: cải cách và làm trọng thần (không xưng đế)');
 let vanYear = null;
 {
-  const G = mk(202); const rfLog = [];
+  const G = mk(202, 3, 928); const rfLog = [];
   for (let i = 0; i < 3; i++) idleOfficial(G);
   const r1 = LT.pwReform(G, 'giamlao'), r2 = LT.pwReform(G, 'doluong'), r3 = LT.pwReform(G, 'chinhdon');
   ok(r1.ok && r2.ok && r3.ok && G.mods.some(m => m.k === 'dt' && m.v === -3) && G.mods.some(m => m.k === 'dt' && m.v === 4), 'Ba cải cách ban hành, có đánh đổi thật (dân tâm −3 do đo ruộng, +4 do giảm lao dịch)');
   const lab0 = G.lab.budget; ok(LT.laoDichBudget(G) < lab0 * 1.01 && LT.pwLaoMul(G) === .7, 'Giảm lao dịch hạ hạn mức lao dịch xuống 70%'); ok(LT.pwTaxMul(G) === 1.15, 'Đo lại ruộng đất tăng thuế thóc 15%');
   ok(!LT.pwReform(G, 'giamlao').ok, 'Không ban hành trùng một cải cách đang chạy');
   let ttAt = {}; const act = () => { for (const f of ['vanthan', 'noithan']) LT.pwAct(G, 'ketgiao', f); if (LT.off(G).list.some(o => !o.post)) LT.pwAct(G, 'tiencu', 'vanthan'); else idleOfficial(G); for (let lv = 1; lv <= 3; lv++) if (G.pw.tt < lv && !LT.ttCheck(G, lv)) { const r = LT.pwTrongThan(G); if (r.ok) ttAt[lv] = G.year; } };
-  for (let i = 0; i < 36 * 6; i++) { keepRich(G); if (i % 9 === 3) act(); if (i % 36 === 20) { for (const id of ['doluong', 'giamlao', 'chinhdon']) LT.pwReform(G, id); } step(G, { dieuquan: 0, chieuan: 0 }, rfLog); if (G.pw.ach.trungthan && !vanYear) { vanYear = G.pw.ach.trungthan.y; } }
+  for (let i = 0; i < 36 * 8; i++) { keepRich(G); if (i % 9 === 3) act(); { for (const id of ['doluong', 'giamlao', 'chinhdon']) LT.pwReform(G, id); } step(G, { dieuquan: 0, chieuan: 0 }, rfLog); if (G.pw.ach.trungthan && !vanYear) { vanYear = G.pw.ach.trungthan.y; } }
   const P = G.pw, sc = LT.pwScores(G);
   console.log('   văn trị ' + sc.van.v + ', chính trị ' + sc.chinh.v + ', quân sự ' + sc.quan.v + ', chức triều ' + (LT.TRONG_THAN[P.tt] || { n: 'không' }).n + ', người trong triều ' + P.court.agents + ', mốc chức: ' + JSON.stringify(ttAt));
   ok(P.tt >= 2 && P.stance === 'trung' && G.rank < 6 && !G.indep, 'Bot văn trị làm Thượng thư trở lên ở triều, vẫn là ' + LT.RANKS[G.rank].n + ' (không tự lập, không xưng đế)');
-  ok(!!P.ach.trungthan && vanYear, 'Đạt thành tựu "Trung thần, vùng đất thịnh vượng" năm ' + vanYear + ' (' + ((vanYear || 0) - 917) + ' năm sau khi bắt đầu)');
+  ok(!!P.ach.trungthan && vanYear >= 930, 'Đạt thành tựu "Trung thần, vùng đất thịnh vượng" năm ' + vanYear + ' (' + ((vanYear || 0) - 917) + ' năm sau khi bắt đầu)');
   ok(!G.over, 'Đạt thành tựu không kết thúc ván: ván vẫn chạy (G.over = ' + G.over + ')');
   ok(G.res.tien > 0 && G.stat.dantam > 30 && !G.over, 'Thành không sụp: dân tâm ' + Math.round(G.stat.dantam));
 }
@@ -50,16 +51,19 @@ let vanYear = null;
 console.log('--- 3. Hướng Chính trị: thành quyền thần khống chế triều đình');
 let chinhYear = null, puppetYear = null;
 {
-  const G = mk(203); const evs = [];
-  const act = i => { for (const f of FIDS) LT.pwAct(G, 'ketgiao', f); idleOfficial(G); for (const f of ['vanthan', 'huancuu', 'ngoaithich']) LT.pwAct(G, 'tiencu', f); if (i % 54 === 3) LT.pwAct(G, 'lienhon', FIDS[(i / 54 | 0) % 4]); };
-  let manip = [], ctlMax = 0; for (let i = 0; i < 36 * 7; i++) { keepRich(G); if (i % 9 === 3) act(i); if (i % 18 === 10 && LT.courtControl(G) >= .55) { const m = ['giamcong', 'buonhiem', 'phongdat'][(i / 18 | 0) % 3], r = LT.pwManip(G, m); if (r.ok) manip.push(m); } ctlMax = Math.max(ctlMax, LT.courtControl(G)); step(G, { dieuquan: 0, chieuan: 0 }, evs); if (G.pw.ach.thaotung && !chinhYear) chinhYear = G.pw.ach.thaotung.y; }
+  const G = mk(203, 4, 931); bigArmy(G); const evs = [];
+  const act = i => { for (const f of FIDS) LT.pwAct(G, 'ketgiao', f); idleOfficial(G); for (const f of ['vanthan', 'huancuu', 'ngoaithich']) LT.pwAct(G, 'tiencu', f); if (i % 54 === 3) LT.pwAct(G, 'lienhon', FIDS[(i / 54 | 0) % 4]); if (i % 72 === 3) { const lo = FIDS.slice().sort((a, b) => G.pw.court.f[a].att - G.pw.court.f[b].att)[0]; LT.pwAct(G, 'muachuoc', lo); } for (let lv = 1; lv <= 3; lv++) if (G.pw.tt < lv && !LT.ttCheck(G, lv)) LT.pwTrongThan(G); };
+  for (const id of ['giamlao', 'doluong']) LT.pwReform(G, id);
+  let manip = [], ctlMax = 0; for (let i = 0; i < 36 * 9; i++) { keepRich(G); G.res.tien = Math.max(G.res.tien, 6000); if (i % 9 === 3) act(i); if (i % 18 === 10 && LT.courtControl(G) >= .55) { const m = ['giamcong', 'buonhiem', 'phongdat'][(i / 18 | 0) % 3], r = LT.pwManip(G, m); if (r.ok) manip.push(m); } ctlMax = Math.max(ctlMax, LT.courtControl(G)); step(G, { dieuquan: 0, chieuan: 0 }, evs); if (G.pw.ach.thaotung && !chinhYear) chinhYear = G.pw.ach.thaotung.y; }
   const P = G.pw, ctl = LT.courtControl(G);
   console.log('   kiểm soát cuối ' + Math.round(ctl * 100) + '% (cao nhất ' + Math.round(ctlMax * 100) + '%), người trong triều ' + P.court.agents + ', việc đã làm: ' + manip.join(',') + ', sự kiện: ' + evs.slice(0, 4).join(','));
   ok(ctlMax >= .6 && P.court.agents >= 5, 'Bot chính trị khống chế triều đình (cao nhất ' + Math.round(ctlMax * 100) + '%, ' + P.court.agents + ' người của mình)');
   ok(!!P.ach.thaotung && G.rank < 6, 'Đạt thành tựu "Thao túng triều đình" năm ' + chinhYear + ' mà không xưng đế (chức ' + LT.RANKS[G.rank].n + ')');
   ok(manip.length >= 2, 'Ép chính sách qua đình nghị: ' + manip.length + ' lần thành công (' + manip.join(', ') + ')');
   ok(!G.over, 'Ván không kết thúc sau thành tựu');
-  const G2 = mk(204); for (let i = 0; i < 36 * 3; i++) { keepRich(G2); if (i % 9 === 3) { for (const f of FIDS) { LT.pwAct(G2, 'ketgiao', f); } idleOfficial(G2); for (const f of ['vanthan', 'huancuu', 'noithan']) LT.pwAct(G2, 'tiencu', f); if (i % 54 === 3) LT.pwAct(G2, 'lienhon', FIDS[(i / 54 | 0) % 4]); } step(G2, { dieuquan: 0, chieuan: 0 }); }
+  const G2 = mk(204, 3, 920); G2.units = [{ id: 1, type: 'truongthuong', n: 100, hl: 55, sk: 70, tb: 2, tan: 0 }]; G2.nextId = 10; LT.ensureFormation(G2); let ctl2 = 0; for (let i = 0; i < 36 * 8; i++) { keepRich(G2); ctl2 = Math.max(ctl2, LT.courtControl(G2)); if (i % 9 === 3) { for (const f of FIDS) { LT.pwAct(G2, 'ketgiao', f); } idleOfficial(G2); for (const f of ['vanthan', 'huancuu', 'noithan']) LT.pwAct(G2, 'tiencu', f); if (i % 54 === 3) LT.pwAct(G2, 'lienhon', FIDS[(i / 54 | 0) % 4]); } step(G2, { dieuquan: 0, chieuan: 0 }); }
+  ok(ctl2 < .5 && !G2.pw.ach.thaotung, 'Phòng ngự sứ chỉ 100 quân, 8 năm kết giao: kiểm soát cao nhất ' + Math.round(ctl2 * 100) + '% (trần ' + Math.round(LT.ctlCap(G2) * 100) + '%), KHÔNG đạt thao túng');
+  ok(chinhYear >= 935 && G.rank >= 4, 'Bot chính trị tối ưu (Tiết độ sứ, 12.500 quân, 6.000 quan) chỉ đạt thao túng năm ' + chinhYear + ' (≥ 935, sau ' + (chinhYear - 917) + ' năm)');
   const pp = LT.pwPuppet(G2); puppetYear = G2.year; console.log('   thử làm quyền thần: ' + (pp.ok ? 'được (kiểm soát ' + Math.round(LT.courtControl(G2) * 100) + '%)' : pp.err));
 }
 
@@ -99,7 +103,7 @@ console.log('--- 6. Phản đòn có thật khi thao túng vụng');
   console.log('   mua chuộc dồn dập: bị phản đòn ' + (G.pw.log.filter(l => l.k === 'bad').length) + ' lần; nghi kỵ ' + Math.round(G.nghiky) + ', Thanh danh ' + Math.round(G.player.thanhdanh) + ', người trong triều ' + G.pw.court.agents);
   ok(G.pw.log.some(l => l.k === 'bad') || G.over, 'Mua chuộc liên tục bị đàn hặc hoặc giáng chức (nhật ký thế lực có mục phản đòn)');
   // (b) làm quyền thần rồi mất thế: bị thảo phạt
-  const H = mk(211); for (let i = 0; i < 40; i++) idleOfficial(H); const C = LT.pw(H).court; for (const f of FIDS) { C.f[f].att = 80; C.f[f].power = 40; } C.agents = 8; LT.pw(H).engaged = true; const pp = LT.pwPuppet(H); ok(pp.ok, 'Điều kiện làm quyền thần (kiểm soát ' + Math.round(LT.courtControl(H) * 100) + '%) → ' + (pp.ok ? 'được' : pp.err));
+  const H = mk(211, 4, 931); bigArmy(H); H.pw = LT.pw(H); H.pw.tt = 2; for (let i = 0; i < 40; i++) idleOfficial(H); const C = LT.pw(H).court; for (const f of FIDS) { C.f[f].att = 80; C.f[f].power = 40; } C.agents = 8; LT.pw(H).engaged = true; const pp = LT.pwPuppet(H); ok(pp.ok, 'Điều kiện làm quyền thần (kiểm soát ' + Math.round(LT.courtControl(H) * 100) + '%) → ' + (pp.ok ? 'được' : pp.err));
   const evs = []; let reacted = false; for (let i = 0; i < 36 * 6 && !reacted; i++) { keepRich(H); if (i === 60) { for (const f of FIDS) { C.f[f].att = -50; C.f[f].power = 70; C.f[f].bias = -40; } C.agents = 1; } step(H, { dieuquan: 0 }, evs); if (evs.some(e => /thảo phạt/i.test(e)) || H.pw.log.some(l => /giáng|thảo phạt/i.test(l.t))) reacted = true; }
   ok(reacted && !H.pw.court.king.puppet, 'Quyền thần mất thế (các phe quay lưng): vua lấy lại quyền, bị thảo phạt hoặc giáng chức — ' + (evs.filter(e => /battle/.test(e))[0] || (H.pw.log.find(l => /giáng/.test(l.t)) || {}).t));
 }
@@ -128,12 +132,12 @@ console.log('--- 9. Chuyển bản lưu 8 → 9');
   const txt = fs.readFileSync(path.join(__dirname, 'fixtures', 'save-v8.json'), 'utf8'), raw = JSON.parse(txt);
   ok(raw.ver === 8 && !raw.pw, 'Tệp thử là bản lưu v8 thật, chưa có sổ thế lực');
   let G, err = ''; try { G = LT.deserialize(txt); } catch (e) { err = e.message; }
-  ok(G && !err && G.ver === 9, 'Bản v8 tải được và được nâng lên phiên bản 9' + (err ? ': ' + err : ''));
+  ok(G && !err && G.ver === LT.SAVE_VER, 'Bản v8 tải được và được nâng lên phiên bản ' + LT.SAVE_VER + (err ? ': ' + err : ''));
   ok(G.rank === raw.rank && G.units.length === raw.units.length && LT.armyCount(G) === raw.units.reduce((a, u) => a + u.n, 0) && LT.mineCount(G) === raw.world.cities.filter(c => c.mine).length && G.year === raw.year, 'Giữ nguyên chức (' + LT.RANKS[G.rank].n + '), quân (' + LT.armyCount(G) + '), đất (' + LT.mineCount(G) + ' thành), năm ' + G.year);
   ok(G.pw && G.pw.court && G.pw.stance === 'trung' && !G.pw.engaged && Object.keys(G.pw.ach).length === 0, 'Sổ thế lực điền mặc định: trung thần, chưa dùng, chưa thành tựu');
   let bad = ''; try { for (let i = 0; i < 90; i++) step(G, {}); } catch (e) { bad = e.message; } ok(!bad && G.res.tien >= 0, 'Chơi tiếp 90 tuần không lỗi (năm ' + G.year + ')');
   let bad2 = ''; try { const r = LT.pwAct(G, 'ketgiao', 'vanthan'); LT.pwStance(G, 'than'); for (let i = 0; i < 90; i++) { keepRich(G); step(G, { dieuquan: 0 }); } } catch (e) { bad2 = e.message; } ok(!bad2, 'Dùng thế lực mới trên bản lưu cũ rồi chơi 90 tuần không lỗi');
-  const again = LT.deserialize(LT.serialize(G)); ok(again.ver === 9 && again.pw.stance === 'than' && again.pw.engaged && again.pw.court.log.length === G.pw.court.log.length, 'Lưu rồi tải lại bản mới giữ nguyên sổ thế lực');
+  const again = LT.deserialize(LT.serialize(G)); ok(again.ver === LT.SAVE_VER && again.pw.stance === 'than' && again.pw.engaged && again.pw.court.log.length === G.pw.court.log.length, 'Lưu rồi tải lại bản mới giữ nguyên sổ thế lực');
   let thrown = ''; try { LT.deserialize(JSON.stringify(Object.assign(JSON.parse(txt), { ver: 7 }))); } catch (e) { thrown = e.message; } ok(/phiên bản lưu 7/.test(thrown), 'Bản lưu < 8 vẫn bị từ chối rõ ràng');
 }
 

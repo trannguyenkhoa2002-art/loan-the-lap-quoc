@@ -110,7 +110,7 @@ LT.citiesWeek = function (G) {
     if (c.id === G.seatId) continue;
     if (!c.mine) { // thành các nước máy: động viên, dân số, tồn lương
       if (quarter) c.ho = Math.min(LT.CITY_LEVELS[c.lvl].cap, Math.round(c.ho * (1 + .004 * (c.dt - 40) / 20)));
-      c.gar = Math.min(Math.round(c.ho * (c.capital ? .12 : .06)), c.gar + Math.max(1, Math.round(c.ho * .002)));
+      c.gar = c.qt != null ? c.gar : Math.min(Math.round(c.ho * (c.capital ? .12 : .06)), c.gar + Math.max(1, Math.round(c.ho * .002)));
       c.grain = Math.min(c.ho * 6, c.grain + c.ho * .12);
       continue;
     }
@@ -128,7 +128,7 @@ LT.citiesWeek = function (G) {
       if (c.pc === 'coThu') c.wall = Math.min(100, c.wall + 3);
       c.ho += Math.round(c.binh * .0); // lính chết đã trừ ở chiến trận
     }
-    c.gar = Math.min(Math.round(c.ho * .05), c.gar + Math.max(1, Math.round(c.ho * .002)));
+    c.gar = c.qt != null ? Math.min(Math.max(c.gar, Math.round(c.ho * .02)), c.gar + 1) : Math.min(Math.round(c.ho * .05), c.gar + Math.max(1, Math.round(c.ho * .002)));
     // tự chủ (CT §6.5): xa, lâu không luân chuyển, tướng nhiều quân ⇒ tự chủ cao; giám quân và thăm viếng ⇒ thấp
     c.auto = clamp(c.auto + (.06 + .05 * c.dist + (c.nop > .75 ? .05 : 0) + (c.binh > 0 ? .03 : 0)) * (c.giam ? .45 : 1) - G.player.uyvong / 2500 + (c._autoAdd || 0), 0, 100);
     c.tamo = clamp(c.tamo + (c.auto > 60 ? .0006 : -.0001), .01, .25);

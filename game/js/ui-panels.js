@@ -164,7 +164,7 @@ function renderWorld(first) {
   const ns = w.ns[sel], self = sel === G.nation;
   let det = '<h3 style="margin-top:0">' + esc(LT.natName(G, sel)) + (self ? ' <span class="tag y">nước của bạn</span>' : '') + (ns.alive ? '' : ' <span class="tag r">đã bị diệt</span>') + '</h3>';
   det += '<div class="hint">Kinh đô ' + n.cap + ' · <b>' + ns.cities + '</b> thành (lúc đầu ' + n.cities + ') · độ khó <b>' + n.diff + '</b> · tính cách <b>' + n.chr + '</b> (' + LT.NATION_CHR[n.chr] + ')</div>';
-  det += '<div class="hint">👍 ' + n.str + '<br>👎 ' + n.weak + '</div>';
+  det += '<div class="hint">👍 ' + n.str + '<br>👎 ' + n.weak + '</div>' + aiNatInfo(sel);
   det += '<div class="flowrow"><span>Ổn định triều đình</span><b>' + Math.round(ns.stab) + '</b></div><div class="flowrow"><span>Sức quân (thang 100)</span><b>' + Math.round(ns.army) + '</b></div>';
   if (!self && ns.alive) {
     const rel = w.rel[sel];
@@ -178,10 +178,10 @@ function renderWorld(first) {
     det += '<h3>Đề nghị giao ước</h3>';
     for (const a of LT.diploActions(G, sel)) det += '<div class="box" style="margin:5px 0;display:flex;justify-content:space-between;gap:8px;align-items:center"><div><b>' + a.n + '</b><span class="tag ' + (p.total >= a.th ? 'g' : 'y') + '">ngưỡng ' + a.th + '</span><div class="hint">' + a.d + '</div>' + (a.err ? '<div class="hint neg">' + esc(a.err) + '</div>' : '') + '</div><button class="btn sm ' + (a.err ? 'dis' : '') + '" data-act="treaty" data-k="' + a.id + '">' + (a.have ? 'Đã có' : 'Đề nghị') + '</button></div>';
   } else if (self) det += '<div class="hint">Bạn là một ' + LT.RANKS[G.rank].n + ' dưới quyền triều đình nước này. Nghi kỵ của triều đình: <b>' + Math.round(G.nghiky) + '</b>. ' + LT.NATION_PERKS[G.nation] + '</div>';
-  const chron = w.chron.slice(0, 14).map(c => '<div class="flowrow"><span><b class="mut">' + c.y + '</b> ' + esc(c.t) + '</span></div>').join('');
+  const chron = chronHtml(14);
   const body = '<div class="grid2" style="grid-template-columns:1.05fr 1fr"><div>' + svg + '<div class="hint" style="margin-top:4px">Số trong vòng tròn = số thành · viền xanh/vàng/đỏ = quan hệ với bạn · bấm vào một nước để xem. Tổng còn <b>' + LT.countCities(G) + '</b> thành.</div></div><div>' + det + '</div></div><h3>Biên niên thiên hạ</h3>' + chron;
-  const wt = UI.tab.world || 'nuoc', inner = wt === 'nuoc' ? body : wt === 'thanh' ? worldCityMap() : wt === 'cua' ? worldMine() : worldCamp();
-  const html = shell('🗺️ Thiên hạ', [['nuoc', '🌏 12 nước & ngoại giao'], ['thanh', '🏯 Bản đồ ' + G.world.cities.length + ' thành'], ['cua', '🏛️ Thành của bạn (' + (LT.mineCount(G) - 1) + ')'], ['chien', '⚔️ Chiến dịch' + (G.camp ? ' ●' : '')]], wt, 'worldTab', inner);
+  const wt = UI.tab.world || 'nuoc', inner = wt === 'nuoc' ? body : wt === 'thanh' ? worldCityMap() : wt === 'cua' ? worldMine() : wt === 'ngg' ? worldDiplo() : worldCamp();
+  const html = shell('🗺️ Thiên hạ', [['nuoc', '🌏 12 nước & ngoại giao'], ['ngg', '🕊️ Bảng ngoại giao & biên niên'], ['thanh', '🏯 Bản đồ ' + G.world.cities.length + ' thành'], ['cua', '🏛️ Thành của bạn (' + (LT.mineCount(G) - 1) + ')'], ['chien', '⚔️ Chiến dịch' + (G.camp ? ' ●' : '')]], wt, 'worldTab', inner);
   if (first || !modalOpen() || UI.panel !== 'world') openModal(html, 'wide xw'); else setModal(html);
   bindWorldMaps();
 }

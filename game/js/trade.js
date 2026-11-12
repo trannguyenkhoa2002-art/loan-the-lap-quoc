@@ -59,6 +59,7 @@ LT.regionFactor = function (G, nid, k) {
   const gi = LT.GOOD_IDS.indexOf(k);
   f *= 1 + .07 * Math.sin(G.tick / 11 + nid * 1.7 + gi * .9);
   const sh = (LT.t2(G).dshift[nid] || {})[k]; if (sh) f *= sh;
+  if (LT.aiRegionMul) f *= LT.aiRegionMul(G, nid, k);
   return f;
 };
 // giá của hàng k ở một nước (nat) hoặc một thành (city); kẹp 0,4–2,5 lần giá gốc
@@ -73,7 +74,7 @@ const gIdx = k => LT.GOOD_IDS.indexOf(k);
 // giá ở chợ trị sở (cung cầu thật của thành bạn) và giá thực khi mua/bán trực tiếp
 LT.localBase = (G, k) => GOODS[k].p * ((LT.NATIONS[G.nation].mod.price || {})[k] || 1);
 LT.localPrice = function (G, k) {
-  const t = LT.t2(G), base = LT.localBase(G, k), p = (G.price[k] || base) * (t.shift[k] || 1);
+  const t = LT.t2(G), base = LT.localBase(G, k), p = (G.price[k] || base) * (t.shift[k] || 1) * (LT.aiPriceMul ? LT.aiPriceMul(G, k) : 1);
   return clamp(p, base * .4, base * 2.5);
 };
 LT.marketQuote = function (G, k, side) { const p = LT.localPrice(G, k); return side === 'buy' ? p * 1.06 : p * .94; };
