@@ -102,7 +102,7 @@ function draw() {
   { const ph = (T / 150 + .1) % 1, sm = (a, b, v) => { const u = Math.max(0, Math.min(1, (v - a) / (b - a))); return u * u * (3 - 2 * u); };
     NIGHT = ph < .8 ? sm(.58, .68, ph) : 1 - sm(.92, 1, ph); DUSK = Math.max(0, 1 - Math.abs(NIGHT - .5) * 2); }
   ctx.clearRect(0, 0, W, H);
-  drawChunksGround(); drawClouds(); drawGridOverlay();
+  drawChunksGround(); drawClouds(); drawGridOverlay(); drawLayerOverlay();
   if (G.tool && !ZM) { const pl = placeableTiles(), tp = .22 + .12 * Math.sin(performance.now() / 300); for (const t of pl) { const p = P(t.x + .5, t.y + .5); if (p.x < -60 || p.y < -60 || p.x > W + 60 || p.y > H + 60) continue; quad(t.x, t.y, 1, 1, 0, 'rgba(255,230,120,' + tp.toFixed(2) + ')', 'rgba(255,240,170,.55)', 1); } }
   if (hover && G.tool) {
     const err = LT.canPlace(G, G.tool, hover.x, hover.y), ok = !err;

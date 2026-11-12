@@ -156,6 +156,7 @@ const upF = e => {
   else if (paint !== null) paint = null;
   else if (moved <= 8 && e.type === 'pointerup' && G) {
     const t = toTile(e.clientX, e.clientY);
+    if (UI.nogoPick) { const r = UI.nogoPick; UI.nogoPick = null; LT.dgNogo(G, t.x, t.y, r, true); toast('Đã cấm quan xây quanh ô (' + t.x + ',' + t.y + '), bán kính ' + r, 'good'); openOfficials('gv'); return; }
     if (G.tool) tryPlace(G.tool, t.x, t.y);
     else { const q = tile(t.x, t.y); if (q && q.b) showInspect(q.b); else hideInspect(); }
   }
@@ -172,7 +173,8 @@ function miniGo(e) { const r = mini.getBoundingClientRect(), mx = (e.clientX - r
 mini.addEventListener('pointerdown', e => { mini.setPointerCapture(e.pointerId); miniGo(e); });
 mini.addEventListener('pointermove', e => { if (e.buttons) miniGo(e); });
 
-$('m-court').onclick = () => G && openCourt();
+$('m-city').onclick = () => G && openLedger();
+$('m-court').onclick = () => G && openCourt('quanlo');
 $('m-army').onclick = () => G && openArmy();
 $('m-world').onclick = () => G && openWorld();
 $('m-ledger').onclick = () => G && openLedger();
@@ -211,6 +213,7 @@ addEventListener('beforeunload', () => { try { if (G && !G.over) LT.saveSlot(G, 
 // ---- khởi động ván ---------------------------------------------------------------------
 LT.onLog = (t, c) => { if ((c === 'bad' || c === 'good') && performance.now() - toastClock > 900) { toastClock = performance.now(); toast(t, c); } };
 function startGame(g, isNew) {
+  if (typeof initHub === 'function') initHub();
   G = g; G.tool = null; G.cat = G.cat || 0; UI.overShown = false; UI.selB = null; hideInspect();
   traffic.splice(0); WALK.length = 0; FL = []; hover = null;
   G.era = Math.min(3, G.rank);

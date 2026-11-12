@@ -121,7 +121,7 @@ console.log('--- 7. Thành tựu ghi sổ, ván vẫn chơi tiếp');
 console.log('--- 8. Ván không đụng tính năng mới chạy y như trước');
 {
   const A = mk(214), B = mk(214); LT.pw(B);   // chỉ tạo sổ thế lực, không dùng
-  const strip = G => { const o = JSON.parse(LT.serialize(G)); delete o.era; delete o.pw; if (o.off) delete o.off.dg; return JSON.stringify(o); };
+  const strip = G => { const o = JSON.parse(LT.serialize(G)); delete o.era; delete o.pw; delete o.hist; if (o.off) delete o.off.dg; return JSON.stringify(o); };
   for (let i = 0; i < 150; i++) { step(A, {}); step(B, {}); }
   ok(strip(A) === strip(B), 'Hai ván cùng hạt giống, một ván có sổ thế lực nhưng không dùng: sau 150 tuần trạng thái giống hệt (trừ sổ thế lực)');
   ok(!B.pw.engaged && Object.keys(B.pw.rf).length === 0 && B.pw.stance === 'trung', 'Không có cải cách, danh nghĩa vẫn trung thần, không "engaged"');

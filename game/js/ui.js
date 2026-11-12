@@ -21,12 +21,19 @@ function bindActs(root) {
   root.querySelectorAll('[data-inp]').forEach(el => { el.oninput = ev => { const fn = ACT[el.dataset.inp]; if (fn) fn(el, ev); }; });
 }
 function openModal(html, cls, dismiss) {
-  const b = $('mBox'); b.className = 'card ' + (cls || ''); b.innerHTML = html; $('modal').style.display = 'flex'; UI.dismiss = dismiss !== false; bindActs(b); b.scrollTop = 0;
+  const b = $('mBox'); b.className = 'card ' + (cls || ''); b.innerHTML = html; $('modal').style.display = 'flex'; UI.dismiss = dismiss !== false; bindActs(b); if (typeof foldSections === 'function') foldSections(b); if (typeof hubMark === 'function') hubMark(); b.scrollTop = 0;
 }
-function setModal(html) { const b = $('mBox'), st = b.scrollTop; b.innerHTML = html; bindActs(b); b.scrollTop = st; }
+// hộp xác nhận trong game (thay confirm gốc)
+function ask(text, yes, label) {
+  let a = document.getElementById('ask'); if (!a) { a = document.createElement('div'); a.id = 'ask'; document.body.appendChild(a); }
+  a.innerHTML = '<div class="card askbox"><p>' + esc(text) + '</p><div class="askbtn"><button class="btn" id="ask-y">' + esc(label || 'Đồng ý') + '</button><button class="btn2" id="ask-n">Hủy</button></div></div>'; a.style.display = 'flex';
+  const done = () => { a.style.display = 'none'; };
+  document.getElementById('ask-y').onclick = () => { done(); yes(); }; document.getElementById('ask-n').onclick = done; a.onclick = e => { if (e.target === a) done(); };
+}
+function setModal(html) { const b = $('mBox'), st = b.scrollTop; b.innerHTML = html; bindActs(b); if (typeof foldSections === 'function') foldSections(b); if (typeof hubMark === 'function') hubMark(); b.scrollTop = st; }
 function modalOpen() { return $('modal').style.display === 'flex'; }
 function closeModal() {
-  $('modal').style.display = 'none'; UI.panel = null; UI.dismiss = true;
+  $('modal').style.display = 'none'; UI.panel = null; UI.dismiss = true; if (typeof hubMark === 'function') hubMark();
   if (typeof pump === 'function') pump();
   // sau biến cố / trận / khảo khóa: trả lại tốc độ cũ để ván không đứng im
   if (G && !G.over && !modalOpen() && !G.pendingEvent && !G.pendingBattle && G.speed === 0 && UI.lastSpeed > 0) { G.speed = UI.lastSpeed; if (typeof ui === 'function') ui(); }
@@ -161,7 +168,8 @@ function updateAlerts() {
   if (G.raid) h += '<div class="alert l2">⚔️ ' + esc(G.raid.name) + ' (~' + G.raid.total + ' quân) đến sau ' + G.raid.t + ' tuần! Chuẩn bị ở Quân vụ.</div>';
   if (!a.length && !G.raid) h += '<div class="alert ok">✔ Thành đang yên ổn.</div>';
   a.sort((x, y) => y.l - x.l); for (const x of a.slice(0, 3)) h += '<div class="alert l' + x.l + '"><span>' + (x.l === 2 ? '🔴' : x.l === 1 ? '🟡' : '⚪') + '</span><span>' + esc(x.t) + '</span></div>';
-  $('alerts').innerHTML = h;
+  if (typeof hintBar === 'function') h += hintBar();
+  $('alerts').innerHTML = h; bindActs($('alerts'));
 }
 
 function seasonName() {

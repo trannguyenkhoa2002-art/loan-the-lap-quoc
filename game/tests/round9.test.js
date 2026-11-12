@@ -179,7 +179,7 @@ console.log('--- 9. Chuyển bản lưu 8 → 9 → 10 và 9 → 10');
   ok(r8.ver === 8 && r9.ver === 9 && !r9.world.ai && r9.pw && Object.keys(r9.pw.ach).length >= 1, 'Hai tệp thử là bản lưu v8 và v9 thật (v9 tạo bằng mã commit 03ace5b; thành tựu: ' + Object.keys(r9.pw.ach).join(',') + ')');
   for (const [nm, txt, raw] of [['8 → 10', v8, r8], ['9 → 10', v9, r9]]) {
     let G, err = ''; try { G = LT.deserialize(txt); } catch (e) { err = e.message; }
-    ok(G && !err && G.ver === 10, 'Bản v' + raw.ver + ' tải được và nâng lên v10 (' + nm + ')' + (err ? ': ' + err : ''));
+    ok(G && !err && G.ver === LT.SAVE_VER, 'Bản v' + raw.ver + ' tải được và nâng lên v11 (' + nm + ')' + (err ? ': ' + err : ''));
     if (!G) continue;
     ok(G.rank === raw.rank && G.units.length === raw.units.length && LT.armyCount(G) === raw.units.reduce((a, u) => a + u.n, 0) && LT.mineCount(G) === raw.world.cities.filter(c => c.mine).length && G.year === raw.year, 'Giữ chức ' + LT.RANKS[G.rank].n + ', quân ' + LT.armyCount(G) + ', ' + LT.mineCount(G) + ' thành, năm ' + G.year);
     if (raw.pw) ok(JSON.stringify(Object.keys(G.pw.ach).sort()) === JSON.stringify(Object.keys(raw.pw.ach).sort()) && G.pw.stance === raw.pw.stance && G.pw.engaged === raw.pw.engaged, 'Giữ nguyên thành tựu (' + Object.keys(G.pw.ach).join(',') + ') và danh nghĩa ' + G.pw.stance);
@@ -187,10 +187,10 @@ console.log('--- 9. Chuyển bản lưu 8 → 9 → 10 và 9 → 10');
     ok(G.world.cities.every(c => c.qt == null) && JSON.stringify(G.world.cities.map(c => c.own)) === JSON.stringify(raw.world.cities.map(c => c.own)), 'Quyền sở hữu thành không đổi sau chuyển bản lưu');
     let bad = ''; try { for (let i = 0; i < 90; i++) { LT.tickWeek(G); calm(G); advance(G); } } catch (e) { bad = e.message; }
     ok(!bad && G.res.tien >= 0, 'Chơi tiếp 90 tuần trên bản đã chuyển không lỗi (năm ' + G.year + ')');
-    const again = LT.deserialize(LT.serialize(G)); ok(again.ver === 10 && again.world.ai.stat.war === G.world.ai.stat.war && JSON.stringify(again.world.ai.n[0].court) === JSON.stringify(G.world.ai.n[0].court), 'Lưu rồi tải lại giữ nguyên sổ AI');
+    const again = LT.deserialize(LT.serialize(G)); ok(again.ver === LT.SAVE_VER && again.world.ai.stat.war === G.world.ai.stat.war && JSON.stringify(again.world.ai.n[0].court) === JSON.stringify(G.world.ai.n[0].court), 'Lưu rồi tải lại giữ nguyên sổ AI');
   }
   let thrown = ''; try { LT.deserialize(JSON.stringify(Object.assign(JSON.parse(v8), { ver: 7 }))); } catch (e) { thrown = e.message; } ok(/phiên bản lưu 7/.test(thrown), 'Bản lưu < 8 vẫn bị từ chối rõ ràng');
-  const NG = LT.newGame(3, 'Mới', 5), sz = LT.serialize(NG).length; ok(NG.ver === 10 && NG.world.ai && sz < 700000, 'Ván mới là v10, có sổ AI; cỡ bản lưu ' + Math.round(sz / 1024) + ' KB');
+  const NG = LT.newGame(3, 'Mới', 5), sz = LT.serialize(NG).length; ok(NG.ver === LT.SAVE_VER && NG.world.ai && sz < 700000, 'Ván mới là v10, có sổ AI; cỡ bản lưu ' + Math.round(sz / 1024) + ' KB');
 }
 
 console.log('--- 10. Thời gian mỗi tuần game');

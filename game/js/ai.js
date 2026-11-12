@@ -386,11 +386,11 @@ LT.origOwner = function (G, c) { let s = 0; for (const n of NAT) { s += n.cities
 function restoreStep(G) {
   const w = G.world, ai = w.ai, tot = w.cities.length; let big = 0, bi = -1; for (let i = 0; i < N; i++) if (w.ns[i].alive && w.ns[i].cities > big) { big = w.ns[i].cities; bi = i; }
   const nAlive = w.ns.slice(0, N).filter(n => n.alive).length;
-  if (!(big / tot > .2 || nAlive < 8) || rr(G) > .35) return;
+  if (!(big / tot > .24 || nAlive < 7) || rr(G) > .12 || G.tick - (ai.lastRestore || -999) < 72) return;
   const dead = []; for (let i = 0; i < N; i++) if (!w.ns[i].alive && i !== G.nation) dead.push(i); if (!dead.length) return;
   const d = dead[Math.floor(rr(G) * dead.length)], cand = w.cities.filter(c => !c.mine && !c.seat && c.own !== d && w.ns[c.own].alive && w.ns[c.own].cities > 4 && !c.capital && LT.origOwner(G, c) === d);
   if (!cand.length) return; cand.sort((a, b) => w.ns[b.own].cities - w.ns[a.own].cities); const c = cand[0], old = c.own;
-  w.ns[d].alive = true; LT.transferCity(G, c.id, d); w.ns[d].troops = Math.round(c.ho * .8); w.ns[d].mob = .6; w.ns[d].stab = 50; ai.n[d].gold = 100; ai.n[d].crisis = { kind: 'phục quốc', until: G.tick + 24, by: 'huancuu' }; ai.n[d].win = 0; ai.stat.restore++; ai.stat.rebel++;
+  w.ns[d].alive = true; LT.transferCity(G, c.id, d); w.ns[d].troops = Math.round(c.ho * .8); w.ns[d].mob = .6; w.ns[d].stab = 50; ai.n[d].gold = 100; ai.n[d].crisis = { kind: 'phục quốc', until: G.tick + 24, by: 'huancuu' }; ai.n[d].win = 0; ai.stat.restore++; ai.stat.rebel++; ai.lastRestore = G.tick;
   c.ho = Math.round(c.ho * .9); c.gar = Math.round(c.ho * .05); c.qt = null; delete c.pv;
   note(G, [d, old], 'PHỤC QUỐC: dân ' + c.n + ' nổi dậy khỏi ách ' + nm(G, old) + ', dựng lại nước ' + nm(G, d) + '.', 'rebel'); LT.syncNations(G);
 }
@@ -413,12 +413,12 @@ function coup(G, i, f) {
   const nameK = () => 'Vua ' + C.king.name;
   const newKing = () => { const KN = ['Trang', 'Cảnh', 'Hiếu', 'Minh', 'Thái', 'Hưng', 'Vĩnh', 'Khánh']; C.king.name = KN[Math.floor(rr(G) * KN.length)] + ' ' + ['Tông', 'Đế', 'Vương', 'Chủ'][Math.floor(rr(G) * 4)]; C.king.age = 16 + Math.floor(rr(G) * 20); };
   if (f === 'huancuu') {
-    if (rr(G) < .6) { dynasty(G, i, 'tướng soái nắm binh quyền cướp ngôi'); kind = 'đổi triều'; return; }
+    if (rr(G) < .72) { dynasty(G, i, 'tướng soái nắm binh quyền cướp ngôi'); kind = 'đổi triều'; return; }
     kind = 'binh biến'; ns.troops *= .93; ns.mob = Math.min(.95, ns.mob + .05); C.king.puppet = true; newKing(); if (rr(G) < .6) A.amb = 'bành trướng';
     eff = 'tướng võ thần thay vua, siết quân bị (động viên +5%), tham vọng ' + A.amb + '; quân hao 7% trong binh biến';
     C.f.huancuu.att = 30; C.f.vanthan.att -= 12;
-  } else if (f === 'ngoaithich') { if (C.king.puppet && rr(G) < .45) { dynasty(G, i, 'ngoại thích nhiếp chính lâu năm soán ngôi vua bù nhìn'); return; } kind = 'ngoại thích chuyên quyền'; C.king.puppet = true; if (rr(G) < .55) A.amb = 'giữ đất'; ns.stab -= 6; eff = 'ngoại thích buông rèm nhiếp chính, vua thành bù nhìn, chính sách chuyển sang ' + A.amb; C.f.ngoaithich.att = 35; }
-  else if (f === 'noithan') { if (C.king.puppet && rr(G) < .35) { dynasty(G, i, 'hoạn quan chuyên quyền lâu năm phế vua lập triều mới'); return; } kind = 'nội thần loạn chính'; newKing(); C.king.puppet = true; ns.stab -= 10; ns.mob = Math.max(.4, ns.mob - .04); eff = 'hoạn quan lập vua nhỏ, triều chính rối ren, quân bị sa sút'; C.f.noithan.att = 30; }
+  } else if (f === 'ngoaithich') { if (C.king.puppet && rr(G) < .6) { dynasty(G, i, 'ngoại thích nhiếp chính lâu năm soán ngôi vua bù nhìn'); return; } kind = 'ngoại thích chuyên quyền'; C.king.puppet = true; if (rr(G) < .55) A.amb = 'giữ đất'; ns.stab -= 6; eff = 'ngoại thích buông rèm nhiếp chính, vua thành bù nhìn, chính sách chuyển sang ' + A.amb; C.f.ngoaithich.att = 35; }
+  else if (f === 'noithan') { if (C.king.puppet && rr(G) < .5) { dynasty(G, i, 'hoạn quan chuyên quyền lâu năm phế vua lập triều mới'); return; } kind = 'nội thần loạn chính'; newKing(); C.king.puppet = true; ns.stab -= 10; ns.mob = Math.max(.4, ns.mob - .04); eff = 'hoạn quan lập vua nhỏ, triều chính rối ren, quân bị sa sút'; C.f.noithan.att = 30; }
   else { kind = 'văn thần cải tổ'; ns.stab += 8; A.gold += 120; if (rr(G) < .6) A.amb = A.amb === 'bành trướng' ? 'giữ đất' : A.amb; eff = 'văn thần ép cải tổ, bớt binh đao, thêm 120 quan quốc khố'; C.f.vanthan.att = 30; }
   ns.stab = clamp(ns.stab, 5, 95); A.crisis = { kind, until: t + 8 + Math.floor(rr(G) * 12), by: f }; ai.stat.crisis++;
   note(G, [i], nm(G, i) + ': ' + FN[f] + ' gây ' + kind + ' (vua cũ ' + old + '): ' + eff + '.', 'coup');
@@ -539,7 +539,8 @@ function occRebel(G, c) {
     ai.stat.pBack = (ai.stat.pBack || 0) + 1; c.own = G.indep ? 12 : G.nation; LT.manage(G, c); c.lowtax = 36; c.tan = 6; c.ho = Math.round(c.ho * .94); c.dt = 50; c.gar = Math.round(c.ho * .03); c.qt = 40; c.pv = cur;
     LT.syncNations(G); LT.log(G, 'Dân ' + c.n + ' nổi dậy đuổi quân chiếm đóng và quay về với bạn!', 'good'); chron(G, 'Dân ' + c.n + ' nổi dậy, quay về với bạn.', 'rebel', cur < N ? [cur] : []); return;
   }
-  if (!w.ns[dest].alive) { // chủ cũ đã mất nước: phục quốc
+  if (!w.ns[dest].alive && G.tick - (ai.lastRestore || -999) < 72) { c.qt = Math.min(c.qt + 15, 60); return; }
+  if (!w.ns[dest].alive) { ai.lastRestore = G.tick; // chủ cũ đã mất nước: phục quốc
     const A = ai.n[dest]; w.ns[dest].alive = true; w.ns[dest].troops = Math.round(c.ho * 1.3 * .5); w.ns[dest].mob = .6; w.ns[dest].stab = 45; A.crisis = { kind: 'phục quốc', until: G.tick + 18, by: 'huancuu' }; A.gold = 80; ai.stat.restore++;
     chron(G, 'PHỤC QUỐC: dân ' + c.n + ' nổi dậy, dựng lại nước ' + nm(G, dest) + ' từ một thành.', 'rebel', [dest]);
   }

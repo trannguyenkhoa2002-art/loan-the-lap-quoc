@@ -161,3 +161,39 @@ table.t2 td.r,table.t2 th.r{text-align:right;font-variant-numeric:tabular-nums}
 .rpmain{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start}.rpgrid{display:grid;grid-template-columns:repeat(3,34px);gap:3px}.rpgrid i{height:34px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:16px}.rpgrid i.ua{background:#7a5a1c;border:1px solid #e6b84f}.rpgrid i.ub{background:#6b2620;border:1px solid #d9645a}.rpgrid i.br{background:#444;border:1px solid #777;color:#bbb;font-size:13px}.rpgrid i.em{background:#ffffff08;border:1px dashed #ffffff22}.rpc{text-align:center;margin-bottom:3px}
 .rpfeed{height:150px;overflow:auto;border:1px solid var(--line);border-radius:4px;padding:4px 8px;background:#0003;font-size:11.5px;line-height:1.5}.rpfeed .rph{color:#efdfb6;font-weight:700;margin-top:4px;border-bottom:1px solid #ffffff14}.rpfeed .rpe.A{color:#f0cf7a}.rpfeed .rpe.B{color:#f0a89a}
 .rpctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}.rpctl .on{outline:2px solid #efce7e}
+
+/* liên kết trong bảng: đọc được trên nền tối */
+#mBox a,#mBox a:visited{color:#f2d58a;text-decoration:underline;text-decoration-color:#f2d58a66}#mBox a:hover{color:#fff3c8}
+#ask{position:fixed;inset:0;z-index:60;background:#0009;display:none;align-items:center;justify-content:center}.askbox{max-width:420px;padding:18px}.askbox p{margin:0 0 14px;line-height:1.5}.askbtn{display:flex;gap:10px;justify-content:flex-end}.askbtn button{min-height:40px;min-width:90px}
+/* giai đoạn 5: ba màn hình */
+#menubar{gap:6px}#menubar .legacy{display:none}
+#menubar .scr{font-size:14px;padding:9px 16px;font-weight:700;background:#2a4a3d;border-color:#c9aa68aa;min-height:40px}#menubar .scr:hover{background:#3a6150}#menubar .scr.cur{background:#7a5f26;border-color:#f0d894;color:#fff3c8}
+.hubrow{display:flex;gap:4px;flex-wrap:wrap;margin:8px 0 2px}.hubchip{background:#1c3a32;border:1px solid var(--line);border-radius:14px;padding:6px 12px;font-size:12.5px;font-weight:600;color:#c4d3c1;min-height:32px}.hubchip:hover{background:#2c5043}.hubchip.on{background:#7a5f26;border-color:#f0d894;color:#fff3c8}
+.sumline{font-size:12.5px;color:#d9cd9a;background:#0003;border-left:3px solid var(--gold);padding:5px 10px;margin:6px 0 4px;border-radius:2px}
+.foldh{cursor:pointer;user-select:none}.foldh::before{content:'▸ ';color:#c9aa68}.foldh[data-open="1"]::before{content:'▾ '}
+#left-toggle{align-self:flex-start;pointer-events:auto;min-height:30px}
+#left.min #goal,#left.min #stats{display:none}#left.min #alerts .alert:nth-child(n+3){display:none}
+.hintline{position:relative}.hintline .x2{margin-left:auto;background:none;border:0;color:#aab;font-size:14px;min-width:28px;min-height:28px}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:#c4d3c1;margin:6px 0}.legend .lg{display:inline-flex;align-items:center;gap:5px}.legend i{width:14px;height:14px;border-radius:3px;display:inline-block}
+#view-controls .sel{height:32px;max-width:120px;font-size:12px}#layer-legend{margin:4px 0}.chartsvg{background:#0003;border-radius:4px}
+/* giai đoạn 5: điện thoại (≤ 700px) và cảm ứng */
+@media(pointer:coarse),(max-width:700px){.btn,.btn2,.hubchip,.ptab,#speedbox button,#view-controls button,#mBox .x,.askbtn button,#left-toggle{min-height:40px}#mBox .x{width:40px;height:40px}#view-controls button{width:40px;height:40px}#mBox select.sel,#mBox input.inp{min-height:38px;font-size:14px}}
+@media(max-width:700px){
+  html,body{overflow-x:hidden}
+  #topbar{left:6px;right:6px;top:6px;height:auto;flex-wrap:wrap;gap:6px;padding:6px}
+  #brand{min-width:0;flex:1 1 90px;gap:6px}#brand strong{font-size:13px}#brand small{font-size:10px;white-space:normal}#brand .seal{flex:0 0 auto}#seasonline{display:none}
+  #datebox{min-width:0;flex:0 0 auto;padding:0 6px;border:0}#dateline{font-size:12px}
+  #speedbox{display:flex;gap:3px}#speedbox button{padding:4px 8px;min-width:40px}#b-step{display:none}
+  #menubar{order:5;flex:1 0 100%;margin:0;display:flex;gap:4px}#menubar .scr{flex:1;padding:6px 4px;font-size:13px;min-height:44px}#menubar #m-menu{flex:0 0 44px}
+  #resbar{left:6px;right:6px;top:auto;max-width:none;flex-wrap:nowrap;overflow-x:auto;position:absolute;top:calc(var(--tb,100px) + 12px)}
+  #resbar>*{flex:0 0 auto}
+  #left{left:6px;top:calc(var(--tb,100px) + 54px);width:min(236px,70vw);max-height:42vh}
+  #left.min #alerts{display:none}
+  #right{display:flex;right:6px;top:auto;bottom:150px;width:auto}#atlas,#inspect{display:none}#view-controls{flex-direction:column;align-items:flex-end}#layer-legend{flex-direction:column;gap:2px;background:#142925cc;padding:4px 6px;border-radius:4px}
+  #bar{left:4px;right:4px;bottom:4px}#tip{font-size:10.5px;padding:3px 8px;min-height:0}#tabs{max-width:100%;overflow-x:auto;padding:3px 4px 0}#tabs>*{flex:0 0 auto}#build{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}#build>*{flex:0 0 auto}
+  #modal{padding:0;align-items:stretch}#mBox{max-width:none!important;width:100%;max-height:none;height:100%;border-radius:0;padding:12px 12px 24px;-webkit-overflow-scrolling:touch}
+  #mBox h2{font-size:19px}.hubrow{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}.hubchip{flex:0 0 auto}.ptabs{flex-wrap:nowrap;overflow-x:auto}.ptab{padding:8px 12px;flex:0 0 auto}
+  #mBox table{display:block;overflow-x:auto;max-width:100%}#mBox .t2{font-size:11.5px}.grid2,.grid3{grid-template-columns:1fr!important}
+  .chartsvg{max-width:100%}.zmap{height:60vh!important}
+}
+@media(pointer:coarse),(max-width:700px){.zbtns button,.btn2,.btn.sm{min-width:40px}#mBox select.sel{min-height:40px}#view-controls .sel{height:40px}#tabs button,#tabs .tab{min-height:40px}.ptab,.hubchip{min-width:40px}}

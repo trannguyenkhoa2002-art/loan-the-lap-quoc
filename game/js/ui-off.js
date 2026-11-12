@@ -32,7 +32,7 @@ function dgCard(role) {
     h += '<div class="hint">Đã đặt ' + d.stat.placed + ' công trình, ' + d.stat.roads + ' ô đường' + (d.stat.skim > 0.5 ? ', bị xén ' + Math.round(d.stat.skim) + ' quan' : '') + '. Quan không bao giờ phá công trình của bạn.</div>';
     h += '<div class="hint" style="margin-top:6px"><b>Vùng cấm quan xây</b>: ' + (D.nogo.length ? D.nogo.map((z, i) => '(' + z.x + ',' + z.y + ') ±' + z.r + ' <a href="#" data-act="dgNogoDel" data-i="' + i + '">bỏ</a>').join(' · ') : 'chưa có') + '</div>';
     const sel = UI.selB ? { x: UI.selB.x, y: UI.selB.y } : { x: G.hx + 1, y: G.hy + 1 };
-    h += '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap" class="hint">Ô ' + '<input class="inp" id="ngx" type="number" value="' + sel.x + '" style="width:58px"> , <input class="inp" id="ngy" type="number" value="' + sel.y + '" style="width:58px"> bán kính <input class="inp" id="ngr" type="number" value="4" style="width:50px"> <button class="btn2" data-act="dgNogoAdd">🚫 Cấm</button>' + (UI.selB ? '' : ' (mặc định: quanh phủ; chọn một công trình trên bản đồ để lấy ô của nó)') + '</div>';
+    h += '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap" class="hint">Ô ' + '<input class="inp" id="ngx" type="number" value="' + sel.x + '" style="width:58px"> , <input class="inp" id="ngy" type="number" value="' + sel.y + '" style="width:58px"> bán kính <input class="inp" id="ngr" type="number" value="4" style="width:50px"> <button class="btn2" data-act="dgNogoAdd">🚫 Cấm</button> <button class="btn" data-act="dgNogoPick" data-tip="Đóng bảng, bấm một ô trên bản đồ để cấm quan xây quanh ô đó; vùng cấm được tô đỏ trên bản đồ">🖱 Chọn trên bản đồ</button>' + '</div>';
   } else if (role === 'kt') {
     h += '<div class="flowrow"><span>Chính sách</span>' + DGS(role, 'pol', d.pol, LT.DG_POL.kt) + '</div>';
     const tl = {}; LT.TAX_LEVELS.forEach((t, i) => { tl[i] = t.n; });
@@ -44,8 +44,8 @@ function dgCard(role) {
     for (const k of ['truongthuong', 'cung', 'daothuan', 'khinhky', 'trongky', 'no']) h += '<label class="hint">' + LT.UNITS[k].n + ' ' + DGN(role, 'mix.' + k, d.mix[k] || 0, 50) + '</label>';
     h += '</div><div class="hint">Cần Quân doanh; mộ theo luật mộ quân hiện có (hộ binh, tân binh luyện nhiều tuần). Đã mộ ' + d.stat.recruited + ' lính.</div>';
   } else {
-    h += '<div class="flowrow"><span>Chính sách</span>' + DGS(role, 'pol', d.pol, LT.DG_POL.tt) + '</div><div>' + DGC(role, 'fill', d.fill, 'Tự điền thành khuyết quan') + DGC(role, 'rotate', d.rotate, 'Luân chuyển quan quá 3 năm (20 quan)') + DGC(role, 'inspect', d.inspect, 'Cho ngự sử tra thành đáng ngờ (30 quan)') + '</div>';
-    h += '<div class="hint">Đã điền ' + d.stat.filled + ' chức, luân chuyển ' + d.stat.rotated + ', thanh tra ' + d.stat.inspected + ' lần. Ngân sách này gồm cả lương chiêu mộ người mới.</div>';
+    h += '<div class="flowrow"><span>Chính sách</span>' + DGS(role, 'pol', d.pol, LT.DG_POL.tt) + '</div><div>' + DGC(role, 'fill', d.fill, 'Tự điền thành khuyết quan') + DGC(role, 'rotate', d.rotate, 'Luân chuyển quan quá 3 năm (20 quan)') + DGC(role, 'inspect', d.inspect, 'Cho ngự sử tra thành đáng ngờ (30 quan)') + DGC(role, 'garrison', d.garrison, 'Tự đồn trú thành mới chiếm (rút quân dã chiến, 0,12 quan/lính)') + '</div>';
+    h += '<div class="hint">Đã điền ' + d.stat.filled + ' chức, luân chuyển ' + d.stat.rotated + ', thanh tra ' + d.stat.inspected + ' lần, đồn trú ' + (d.stat.garrisoned || 0) + ' quân. Ngân sách này gồm cả lương chiêu mộ người mới.</div>';
   }
   h += '</div></div><div class="hint" style="margin-top:6px"><b>Nhật ký</b>' + (d.log.length ? '' : ' — chưa có') + '</div>';
   const okL = d.log.filter(e => e.k !== 'no').slice(0, 5), noL = d.log.filter(e => e.k === 'no').slice(0, 2), shown = d.log.filter(e => okL.indexOf(e) >= 0 || noL.indexOf(e) >= 0);
@@ -62,6 +62,7 @@ ACT.dgIn = el => { const t = el.dataset.t, v = t === 'n' ? Math.max(0, Math.floo
 ACT.dgOn = el => { const D = LT.dg(G), r = LT.dgSet(G, el.dataset.r, { on: !D[el.dataset.r].on }); if (!r.ok) toast(r.err, 'bad'); renderOfficials(); ui(); };
 ACT.dgAppoint = el => { if (!el.value) return; const role = el.dataset.r; offDone(LT.offAppoint(G, +el.value, { t: 'seat', role: LT.DG_ROLES[role].seat }), 'Đã bổ nhiệm'); };
 ACT.dgFire = el => { const O = LT.off(G), o = LT.offById(G, O.seat[LT.DG_ROLES[el.dataset.r].seat]); if (o) LT.offUnpost(G, o); renderOfficials(); };
+ACT.dgNogoPick = () => { const r = Math.max(1, Math.min(20, +((document.getElementById('ngr') || {}).value) || 4)); UI.nogoPick = r; closeModal(); toast('Bấm một ô trên bản đồ để cấm quan xây quanh ô (bán kính ' + r + ')', ''); };
 ACT.dgNogoAdd = () => { const g = id => +document.getElementById(id).value; LT.dgNogo(G, g('ngx'), g('ngy'), g('ngr'), true); renderOfficials(); };
 ACT.dgNogoDel = el => { const z = LT.dg(G).nogo[+el.dataset.i]; if (z) LT.dgNogo(G, z.x, z.y, 0, false); renderOfficials(); };
 function renderOfficials(first) {
@@ -87,11 +88,14 @@ function renderOfficials(first) {
       body += '</table><div class="hint">Mỗi quý, quan tự quyết theo phương châm của thành và theo tính cách của họ: khai khẩn ruộng, mở chợ, đắp thành, dẹp giặc, chống lũ… Người Chính cao làm thành giàu lên; người tham ăn bớt thuế (ẩn cho tới khi thanh tra); người dã tâm cao cầm quân ở xa lâu năm thì bám rễ, nộp thiếu rồi ly khai. Bấm vào tên thành ở bảng "Thành của bạn" để xem nhật ký đầy đủ.</div>';
     }
   } else if (t === 'ds') {
-    body += '<table class="t2"><tr><th>Quan</th><th>Nguồn</th><th>Thuộc tính</th><th>Trung / dã tâm</th><th>Chức</th><th class="r">Bổng/tháng</th><th>Khảo khóa cuối năm</th><th></th></tr>';
-    if (!O.list.length) body += '<tr><td colspan="8" class="mut">Chưa có quan nào.</td></tr>';
-    for (const o of O.list) {
+    const fl = UI.offF || 'all', so = UI.offS || 'post';
+    body += '<div class="radio" style="margin:6px 0">' + [['all', 'Tất cả'], ['post', 'Đang giữ chức'], ['idle', 'Rảnh'], ['bad', 'Đáng ngờ']].map(x => '<button class="btn2 ' + (fl === x[0] ? 'on' : '') + '" data-act="offFilter" data-v="' + x[0] + '">' + x[1] + '</button>').join('') + ' <span class="hint">Xếp theo</span> ' + [['post', 'chức'], ['name', 'tên'], ['chinh', 'chính'], ['trung', 'trung'], ['da', 'dã tâm']].map(x => '<button class="btn2 ' + (so === x[0] ? 'on' : '') + '" data-act="offSort" data-v="' + x[0] + '">' + x[1] + '</button>').join('') + '</div>';
+    body += '<table class="t2"><tr><th>Quan</th><th>Nguồn</th><th>Thuộc tính</th><th>Trung / dã tâm</th><th>Chức & giao việc</th><th class="r">Bổng/tháng</th><th>Khảo khóa cuối năm</th><th></th></tr>';
+    const lst = O.list.filter(o => fl === 'all' || (fl === 'post' && o.post) || (fl === 'idle' && !o.post) || (fl === 'bad' && (o.trung < 45 || o.da > 65 || o.debt > 1))).sort((a, b) => so === 'name' ? a.name.localeCompare(b.name) : so === 'chinh' ? b.chinh - a.chinh : so === 'trung' ? b.trung - a.trung : so === 'da' ? b.da - a.da : (b.post ? 1 : 0) - (a.post ? 1 : 0) || b.chinh - a.chinh);
+    if (!lst.length) body += '<tr><td colspan="8" class="mut">Không có quan nào khớp bộ lọc.</td></tr>';
+    for (const o of lst) {
       const sc = LT.offScore(G, o), rev = o.revY === G.year, src = LT.OFF_SRC[o.src];
-      body += '<tr><td><b>' + esc(o.name) + '</b> ' + traitTxt(o) + '<div class="hint">' + o.age + ' tuổi · quê ' + (o.home != null ? esc(G.world.cities[o.home].n) : '—') + '</div></td><td class="hint">' + (src ? src.n : o.src === 'hang' ? 'Hàng quan' : 'Triều đình bổ') + '</td><td>' + offStats(o) + ' ' + offLiem(o) + '</td><td>' + trK(o) + (o.debt > 1 ? '<div class="neg">nợ bổng ' + Math.round(o.debt) + '</div>' : '') + '</td><td>' + postTxt(o) + '</td><td class="r">' + f1(o.sal * 3) + '</td><td>' + (o.post ? 'điểm <b class="' + (sc >= 60 ? 'pos' : sc < 40 ? 'neg' : '') + '">' + sc + '</b> ' + (rev ? '<span class="mut">đã chấm năm ' + G.year + '</span>' : '<button class="btn2" data-act="offRev" data-id="' + o.id + '" data-a="thuong" data-tip="Thưởng 15 quan: trung thành tăng (thưởng người kém thì người giỏi bất mãn)">🎖</button><button class="btn2" data-act="offRev" data-id="' + o.id + '" data-a="phat" data-tip="Phạt: trung thành giảm (phạt người có công là bất công)">⚖</button><button class="btn2" data-act="offRev" data-id="' + o.id + '" data-a="giu">＝</button>') : '<span class="mut">—</span>') + '</td><td><button class="btn2" data-act="offDis" data-id="' + o.id + '">' + (UI.offDisId === o.id ? 'Chắc chứ? Bấm lại' : 'Bãi miễn') + '</button></td></tr>';
+      body += '<tr><td><b>' + esc(o.name) + '</b> ' + traitTxt(o) + '<div class="hint">' + o.age + ' tuổi · quê ' + (o.home != null ? esc(G.world.cities[o.home].n) : '—') + '</div></td><td class="hint">' + (src ? src.n : o.src === 'hang' ? 'Hàng quan' : 'Triều đình bổ') + '</td><td>' + offStats(o) + ' ' + offLiem(o) + '</td><td>' + trK(o) + (o.debt > 1 ? '<div class="neg">nợ bổng ' + Math.round(o.debt) + '</div>' : '') + '</td><td>' + postTxt(o) + '<div>' + quickAssign(o) + '</div></td><td class="r">' + f1(o.sal * 3) + '</td><td>' + (o.post ? 'điểm <b class="' + (sc >= 60 ? 'pos' : sc < 40 ? 'neg' : '') + '">' + sc + '</b> ' + (rev ? '<span class="mut">đã chấm năm ' + G.year + '</span>' : '<button class="btn2" data-act="offRev" data-id="' + o.id + '" data-a="thuong" data-tip="Thưởng 15 quan: trung thành tăng (thưởng người kém thì người giỏi bất mãn)">🎖</button><button class="btn2" data-act="offRev" data-id="' + o.id + '" data-a="phat" data-tip="Phạt: trung thành giảm (phạt người có công là bất công)">⚖</button><button class="btn2" data-act="offRev" data-id="' + o.id + '" data-a="giu">＝</button>') : '<span class="mut">—</span>') + '</td><td><button class="btn2" data-act="offDis" data-id="' + o.id + '">' + (UI.offDisId === o.id ? 'Chắc chứ? Bấm lại' : 'Bãi miễn') + '</button></td></tr>';
     }
     body += '</table><div class="hint">Khảo khóa cuối năm: chấm điểm theo kết quả thật của thành (dân số, dân tâm, thuế nộp, tham ô, tự chủ). Thưởng phạt công bằng thì trung thành tăng; thiên vị thì người khác bất mãn (CT §4). Nhiệm kỳ 3 năm: ở lâu quá một nơi, quan bám rễ, tự chủ thành tăng nhanh. Hồi tỵ: đừng bổ quan về chính quê.</div>';
   } else if (t === 'nguon') {
@@ -112,6 +116,17 @@ function renderOfficials(first) {
   const html = shell('👥 Quan viên', [['gv', 'Giao việc'], ['thanh', 'Theo thành'], ['ds', 'Danh sách & khảo khóa'], ['nguon', 'Tuyển người'], ['chuc', 'Chức ở trị sở']], t, 'offTab', body);
   if (first || !modalOpen() || UI.panel !== 'officials') openModal(html, 'wide xw'); else setModal(html);
 }
+function quickAssign(o) {
+  const vac = LT.ownedCities(G).filter(c => !c.quan), seats = Object.keys(LT.SEAT_ROLES).filter(r => !LT.off(G).seat[r] && !LT.SEAT_ROLES[r].dg), dgs = Object.keys(LT.SEAT_ROLES).filter(r => !LT.off(G).seat[r] && LT.SEAT_ROLES[r].dg);
+  let h = '<select class="sel" data-chg="offQuick" data-id="' + o.id + '" style="max-width:170px"><option value="">— giao việc —</option>';
+  if (vac.length) h += '<optgroup label="Thành khuyết quan">' + vac.map(c => '<option value="c:' + c.id + '">' + esc(c.n) + '</option>').join('') + '</optgroup>';
+  if (seats.length || dgs.length) h += '<optgroup label="Chức ở trị sở">' + seats.concat(dgs).map(r => '<option value="s:' + r + '">' + esc(LT.SEAT_ROLES[r].n) + '</option>').join('') + '</optgroup>';
+  if (o.post) h += '<option value="u">⏏ Cho nghỉ việc (rảnh)</option>';
+  return h + '</select>';
+}
+ACT.offFilter = el => { UI.offF = el.dataset.v; renderOfficials(); };
+ACT.offSort = el => { UI.offS = el.dataset.v; renderOfficials(); };
+ACT.offQuick = el => { const v = el.value; if (!v) return; const o = LT.offById(G, +el.dataset.id); if (v === 'u') { LT.offUnpost(G, o); renderOfficials(); return; } const [k, id] = v.split(':'); offDone(LT.offAppoint(G, o.id, k === 'c' ? { t: 'city', id: +id } : { t: 'seat', role: id }), 'Đã giao việc cho ' + o.name); };
 const offDone = (r, okTxt) => { toast(r.ok ? okTxt : r.err, r.ok ? 'good' : 'bad'); renderOfficials(); ui(); };
 ACT.offAssign = el => { if (!el.value) return; offDone(LT.offAppoint(G, +el.value, { t: 'city', id: +el.dataset.id }), 'Đã bổ nhiệm'); };
 ACT.offSug = el => { const sg = LT.offSuggest(G, +el.dataset.id, true); if (!sg) return; let o = sg.o; if (o.id < 0) { const r = LT.offHire(G, o.id); if (!r.ok) { toast(r.err, 'bad'); return; } o = r.o; } offDone(LT.offAppoint(G, o.id, { t: 'city', id: +el.dataset.id }), 'Đã bổ nhiệm ' + o.name); };

@@ -264,3 +264,44 @@ function perfRender() {
 }
 window.addEventListener('keydown', e => { if (e.key === 'F3') { e.preventDefault(); perfSet(!PERF.on); if (PERF.on) perfRender(); } });
 (function initGfx() { const saved = lsGet('lt-gfx'), user = lsGet('lt-gfx-user') === '1'; setGfxMode(GFX_MODES[saved] ? saved : autoGfxMode(), false); GFX.auto = !user; GFX.chosen = !!(GFX_MODES[saved] && user); })();
+
+// ---- lớp hiển thị theo ô (dân tâm / trị an / vệ sinh): bản đồ giá trị lưu đệm, chỉ tính lại khi công trình đổi; vẽ gộp theo ba nhóm màu ----
+const LAYERMAP = { key: '', v: null, ref: null, kind: '' };
+function layerValues(kind) {
+  const key = kind + ':' + G.bl.length + ':' + (G.tick / 9 | 0) + ':' + G.rank; if (LAYERMAP.key === key && LAYERMAP.v) return LAYERMAP.v;
+  const v = new Float32Array(N * N), svc = { well: [], watch: [], clinic: [], market: [] };
+  for (const b of G.bl) { if (b.building) continue; if (b.k === 'well') svc.well.push(b); if ((b.k === 'watch' && b.sr > 0) || b.k === 'barracks') svc.watch.push(b); if (b.k === 'clinic' && b.sr > 0) svc.clinic.push(b); if (b.k === 'market') svc.market.push(b); }
+  const R = { well: 6, watch: 7, clinic: 9, market: 10 };
+  const near = (k, x, y) => { let best = 99; for (const s of svc[k]) { const d = Math.max(Math.abs(s.x - x), Math.abs(s.y - y)); if (d < best) best = d; } return best >= 99 ? 0 : Math.max(0, 1 - Math.max(0, best - R[k] * .5) / (R[k] * .75 + 1)); };
+  const dt = G.stat.dantam / 100;
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const a = near('watch', x, y), b = Math.max(near('well', x, y), near('clinic', x, y)), c = near('market', x, y);
+    v[y * N + x] = kind === 'trian' ? a : kind === 'vesinh' ? b : Math.min(1, (a + b + c) / 3 * .6 + dt * .4);
+  }
+  LAYERMAP.key = key; LAYERMAP.ref = G.city; LAYERMAP.kind = kind; LAYERMAP.v = v; return v;
+}
+// vùng cấm quan xây: tô đỏ trên bản đồ (và viền nhấp nháy khi đang chọn ô)
+function drawNogoZones() {
+  const D = G.off && G.off.dg; if (!D || !D.nogo || !D.nogo.length || s < .35) return;
+  ctx.beginPath(); for (const z of D.nogo) { const x0 = Math.max(0, z.x - z.r), y0 = Math.max(0, z.y - z.r), x1 = Math.min(N, z.x + z.r + 1), y1 = Math.min(N, z.y + z.r + 1), a = P(x0, y0), b = P(x1, y0), c = P(x1, y1), d = P(x0, y1); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineTo(c.x, c.y); ctx.lineTo(d.x, d.y); ctx.closePath(); }
+  ctx.fillStyle = 'rgba(220,50,40,.20)'; ctx.fill(); ctx.strokeStyle = 'rgba(255,110,90,.8)'; ctx.lineWidth = 1.6; ctx.setLineDash([6, 4]); ctx.stroke(); ctx.setLineDash([]);
+}
+const OVL = { c: null, key: '', x0: 0, y0: 0, off: 0 };
+// ảnh lớp phủ dựng một lần theo toạ độ thế giới (affine) rồi chép lên màn hình mỗi khung; chỉ dựng lại khi dữ liệu hoặc công trình đổi
+function drawLayerOverlay() {
+  drawNogoZones();
+  const kind = UI.layer; if (!kind || kind === 'none' || s < .3) return;
+  const v = layerValues(kind), x0 = Math.max(0, G.hx + 1 - 19), x1 = Math.min(N - 1, G.hx + 1 + 19), y0 = Math.max(0, G.hy + 1 - 19), y1 = Math.min(N - 1, G.hy + 1 + 19);
+  const key = kind + '|' + LAYERMAP.key + '|' + x0 + ',' + y0;
+  if (!OVL.c) OVL.c = document.createElement('canvas');
+  if (OVL.key !== key) {
+    const off = (y1 + 1 - x0) * 32, w = ((x1 + 1 - y0) + (y1 + 1 - x0)) * 32, h = ((x1 + 1 - x0) + (y1 + 1 - y0)) * 16;
+    OVL.c.width = Math.ceil(w); OVL.c.height = Math.ceil(h); OVL.x0 = x0; OVL.y0 = y0; OVL.off = off;
+    const c2 = OVL.c.getContext('2d'), cols = ['rgba(214,70,60,.34)', 'rgba(232,196,70,.30)', 'rgba(110,200,100,.30)'], B = [[], [], []];
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { const q = v[y * N + x]; B[q < .34 ? 0 : q < .67 ? 1 : 2].push(x, y); }
+    const T2 = (X, Y) => [(X - Y) * 32 + off, (X + Y - x0 - y0) * 16];
+    for (let b = 0; b < 3; b++) { const a = B[b]; if (!a.length) continue; c2.beginPath(); for (let k = 0; k < a.length; k += 2) { const x = a[k], y = a[k + 1], p0 = T2(x, y), p1 = T2(x + 1, y), p2 = T2(x + 1, y + 1), p3 = T2(x, y + 1); c2.moveTo(p0[0], p0[1]); c2.lineTo(p1[0], p1[1]); c2.lineTo(p2[0], p2[1]); c2.lineTo(p3[0], p3[1]); c2.closePath(); } c2.fillStyle = cols[b]; c2.fill(); }
+    OVL.key = key;
+  }
+  ctx.drawImage(OVL.c, ox - OVL.off * s, oy + (OVL.x0 + OVL.y0) * 16 * s, OVL.c.width * s, OVL.c.height * s);
+}

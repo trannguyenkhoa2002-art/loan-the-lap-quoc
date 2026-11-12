@@ -5,21 +5,23 @@
 (function (g) {
 const LT = g.LT = g.LT || {};
 // bản lưu từ phiên bản SAVE_MIN trở lên luôn tải được: LT.SAVE_MIGRATE[v] chuyển v -> v+1 (điền mặc định, không mất dữ liệu). Bản < SAVE_MIN (lưới cũ) vẫn bị từ chối.
-LT.SAVE_MIN = 8; LT.SAVE_VER = 10;
+LT.SAVE_MIN = 8; LT.SAVE_VER = 11;
 LT.SAVE_MIGRATE = {
   // 8 -> 9: thêm sổ thế lực (pw): triều đình, phe phái, danh nghĩa, thành tựu — mọi thứ ở mặc định, chức/đất/quân người chơi giữ nguyên
   8: o => { if (!o.pw && LT.pwDefault) o.pw = LT.pwDefault(o.nation, o.seed || 7); },
   // 9 -> 10: thêm AI các nước (w.ai): tham vọng, ký ức, hiệp ước, triều đình gọn từng nước, quy thuận thành chiếm — chức/đất/quân/thành tựu của người chơi giữ nguyên
   9: o => { if (o.world && !o.world.ai && LT.aiInit) LT.aiInit(o); },
+  // 10 -> 11: thêm lịch sử cho biểu đồ (G.hist, mỗi quý một điểm, có trần); bản cũ bắt đầu ghi từ lúc tải
+  10: o => { if (!o.hist) o.hist = { q: [] }; },
 };
-const SAVE_KEY = 'loan-the-lap-quoc-v2', SAVE_KEY_OLD = 'loan-the-lap-quoc-v1', SAVE_VER = 10;
+const SAVE_KEY = 'loan-the-lap-quoc-v2', SAVE_KEY_OLD = 'loan-the-lap-quoc-v1', SAVE_VER = 11;
 
 LT.newYearLedger = () => ({ rev: 0, exp: 0, yield: 0, leave: 0, arrive: 0, thueTien: 0, thueThoc: 0, cho: 0, mono: 0, remitT: 0, remitL: 0, dueT: 0, dueL: 0, quota: 0, hoStart: 0, tbtMua: 0, tbtBan: 0, dtTBT: 0, unpaid: 0 });
 
 LT.newGame = function (nation, name, seed) {
   const nm = LT.NATIONS[nation], mod = nm.mod, sc = LT.DIFF_START[nm.diff];
   const G = {
-    ver: SAVE_VER, nation, name: name || 'Vô danh', seed: seed || 1234 + nation, rs: (seed || 1234) + nation * 977,
+    ver: SAVE_VER, hist: { q: [] }, nation, name: name || 'Vô danh', seed: seed || 1234 + nation, rs: (seed || 1234) + nation * 977,
     rank: 1, era: 1, year: LT.START_YEAR, week: 1, tick: 0, speed: 0, acc: 0,
     hx: 55, hy: 55, seatLvl: 1, nextId: 1, bl: [], map: [], free: {},
     res: { tien: Math.round(780 * sc * mod.tien), luong: Math.round(260 * sc * mod.luong), go: 240, da: 140, quang: 24, nongcu: 6, vai: 24, ken: 0, lua: 0, tra: 0, gom: 0, ruou: 0, binhkhi: 60, giap: 0, ngua: 0, muoi: 24 },
@@ -85,6 +87,7 @@ LT.tickWeek = function (G) {
   if (LT.eventsWeek) LT.eventsWeek(G);
   if (LT.offWeek) LT.offWeek(G);
   if (LT.worldWeek) LT.worldWeek(G);
+  if (G.tick % 9 === 0) LT.histRecord(G);
   if (LT.tradeWeek) LT.tradeWeek(G);
   if (LT.campWeek) LT.campWeek(G);
   if (LT.checkEndings) LT.checkEndings(G);
@@ -92,6 +95,14 @@ LT.tickWeek = function (G) {
   G.flow.last = G.flow.cur;
   if (G.week > LT.WEEKS_YEAR) { G.week = 1; G.year++; LT.rollYear(G); }
   if (G.res.tien <= 0 && G.res.luong <= 0 && LT.totalHo(G) <= 0) G.over = { win: false, title: 'Thành tan hoang', text: 'Dân đã bỏ đi hết, kho trống rỗng. Bạn không còn gì để cai trị.' };
+};
+// lịch sử cho biểu đồ: mỗi quý một điểm [tick, hộ, tiền, lương, quân, văn trị, chính trị, quân sự, thành]; trần 240 điểm (60 năm)
+LT.HIST_MAX = 240;
+LT.histRecord = function (G) {
+  const h = G.hist || (G.hist = { q: [] }); let v = 0, c = 0, q = 0;
+  if (LT.pwScores) { try { const s = LT.pwScores(G); v = s.van.v; c = s.chinh.v; q = s.quan.v; } catch (e) { } }
+  h.q.push([G.tick, Math.round(LT.totalHo(G)), Math.round(G.res.tien), Math.round(G.res.luong + (G.dan.luong || 0)), Math.round(LT.armyCount ? LT.armyCount(G) : 0), v, c, q, LT.mineCount ? LT.mineCount(G) : 1]);
+  while (h.q.length > LT.HIST_MAX) h.q.shift();
 };
 LT.rollYear = function (G) {
   G.lastYr = G.yr;

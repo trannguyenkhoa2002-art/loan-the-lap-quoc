@@ -26,7 +26,7 @@ const DEF = () => ({
   xd: { on: false, per: 'quy', budget: { tien: 0, go: 0, da: 0 }, spent: { tien: 0, go: 0, da: 0 }, pk: -1, pol: 'dansinh', tg: { ho: 0, luong: 0 }, reserve: 50, log: [], seen: {}, stat: { placed: 0, roads: 0, skim: 0 } },
   kt: { on: false, per: 'quy', budget: { tien: 0 }, spent: { tien: 0 }, pk: -1, pol: 'canbang', taxMin: 0, taxMax: 2, dtLo: 45, dtHi: 65, reserve: 50, buyGrain: true, sell: true, log: [], seen: {}, stat: { bought: 0, sold: 0, taxMoves: 0, skim: 0 } },
   qs: { on: false, per: 'quy', budget: { tien: 0 }, spent: { tien: 0 }, pk: -1, tg: { quan: 0 }, mix: { truongthuong: 50, cung: 30, daothuan: 20 }, reserve: 50, log: [], seen: {}, stat: { recruited: 0, skim: 0 } },
-  tt: { on: false, per: 'nam', budget: { tien: 0 }, spent: { tien: 0 }, pk: -1, pol: 'thuong', fill: true, rotate: true, inspect: true, reserve: 50, log: [], seen: {}, stat: { filled: 0, rotated: 0, inspected: 0 } },
+  tt: { on: false, per: 'nam', budget: { tien: 0 }, spent: { tien: 0 }, pk: -1, pol: 'thuong', fill: true, rotate: true, inspect: true, garrison: false, reserve: 50, log: [], seen: {}, stat: { filled: 0, rotated: 0, inspected: 0, garrisoned: 0 } },
   nogo: [],
 });
 const merge = (dst, src) => { for (const k in src) { if (dst[k] === undefined) dst[k] = JSON.parse(JSON.stringify(src[k])); else if (src[k] && typeof src[k] === 'object' && !Array.isArray(src[k])) merge(dst[k], src[k]); } };
@@ -55,7 +55,7 @@ LT.dgSet = function (G, role, patch) {
   for (const k of ['taxMin', 'taxMax']) if (k in patch) d[k] = clamp(Math.floor(+patch[k] || 0), 0, LT.TAX_LEVELS.length - 1);
   if (d.taxMin > d.taxMax) { const t = d.taxMin; d.taxMin = d.taxMax; d.taxMax = t; }
   for (const k of ['dtLo', 'dtHi']) if (k in patch) d[k] = clamp(Math.floor(+patch[k] || 0), 0, 100);
-  for (const k of ['buyGrain', 'sell', 'fill', 'rotate', 'inspect']) if (k in patch) d[k] = !!patch[k];
+  for (const k of ['buyGrain', 'sell', 'fill', 'rotate', 'inspect', 'garrison']) if (k in patch) d[k] = !!patch[k];
   if (patch.mix) for (const k in patch.mix) d.mix[k] = Math.max(0, Math.floor(+patch.mix[k] || 0));
   return { ok: true };
 };
@@ -261,6 +261,9 @@ function qsRun(G, D, d, o) {
 
 // ============================ TỔNG QUẢN CÁC THÀNH ============================
 function ttRun(G, D, d, o) {
+  if (d.garrison && G.tick % 3 === 1 && LT.garrison) {   // tự đồn trú thành mới chiếm: rút quân dã chiến, trả lương đồn trú trong ngân sách
+    for (const c of LT.ownedCities(G)) { if (c.qt == null) continue; const need = Math.max(20, Math.round(c.ho * .04)), lack = need - c.gar; if (lack < 10) continue; const n = Math.min(lack, 400), cost = Math.ceil(n * .12); if (Math.min(remain(d, 'tien'), G.res.tien - d.reserve) < cost) { dgWhyNot(G, 'tt', 'thành ' + c.n + ' mới chiếm thiếu đồn trú (' + c.gar + '/' + need + ') nhưng hết ngân sách đồn trú'); break; } const r = LT.garrison(G, c.id, n); if (r.ok) { LT.addRes(G, 'tien', -cost, 'Lương đồn trú ' + c.n); d.spent.tien += cost; d.stat.garrisoned = (d.stat.garrisoned || 0) + r.put; dgLog(G, 'tt', 'ok', 'Đặt ' + r.put + ' quân đồn trú ' + c.n + ' (mới chiếm, quy thuận ' + Math.round(c.qt) + ', đồn ' + c.gar + '/' + need + '), lương ' + cost + ' quan.'); } else dgWhyNot(G, 'tt', 'thành ' + c.n + ' thiếu đồn trú nhưng ' + r.err.toLowerCase()); }
+  }
   if (G.tick % 9 !== 2) return; const eff = LT.dgEff(G, 'tt'); const cities = LT.ownedCities(G); if (!cities.length) return;
   const budgetT = () => Math.min(remain(d, 'tien'), G.res.tien - d.reserve);
   if (d.fill) {

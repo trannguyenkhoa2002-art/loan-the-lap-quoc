@@ -3,8 +3,8 @@
 // CÁC BẢNG: Triều chính, Sổ sách, Thiên hạ, Menu, màn mở đầu, khảo khóa, biến cố, thi cử, kết thúc.
 // ============================================================================
 function shell(title, tabs, cur, tabAct, body, extra) {
-  let h = '<div class="head"><h2>' + title + '</h2><button class="x" data-act="close" aria-label="Đóng">✕</button></div>';
-  if (tabs) h += '<div class="ptabs">' + tabs.map(t => '<button class="ptab ' + (t[0] === cur ? 'on' : '') + '" data-act="' + tabAct + '" data-t="' + t[0] + '">' + t[1] + '</button>').join('') + '</div>';
+  let h = '<div class="head"><h2>' + title + '</h2><button class="x" data-act="close" aria-label="Đóng">✕</button></div>' + hubRow() + hubSummary();
+  if (tabs && !(UI.panel === 'court' || UI.panel === 'world')) h += '<div class="ptabs">' + tabs.map(t => '<button class="ptab ' + (t[0] === cur ? 'on' : '') + '" data-act="' + tabAct + '" data-t="' + t[0] + '">' + t[1] + '</button>').join('') + '</div>';
   return h + body + (extra || '');
 }
 const bar = (v, mx, cls) => '<div class="bar2 ' + (cls || '') + '"><i style="width:' + Math.max(0, Math.min(100, v / mx * 100)) + '%"></i></div>';
@@ -20,7 +20,7 @@ function renderCourt(first) {
   const t = UI.tab.court, tabs = [['dan', '👥 Dân & tầng lớp'], ['thue', '💰 Thuế & chính sách'], ['quanlo', '🎖️ Quan lộ'], ['luc', '⚖️ Thế lực'], ['phe', '🏛️ Phe phái'], ['tuu', '🏅 Thành tựu'], ['bocao', '📜 Bố cáo']];
   let body = '';
   if (t === 'dan') body = courtDan(); else if (t === 'thue') body = courtThue(); else if (t === 'quanlo') body = courtQuanlo(); else if (t === 'luc') body = courtLuc(); else if (t === 'phe') body = courtPhe(); else if (t === 'tuu') body = courtTuu(); else body = courtBocao();
-  const html = shell('📜 Triều chính — ' + LT.RANKS[G.rank].n, tabs, t, 'courtTab', body);
+  const html = shell('📜 Triều đình — ' + LT.RANKS[G.rank].n, tabs, t, 'courtTab', body);
   if (first || !modalOpen() || UI.panel !== 'court') openModal(html, 'wide'); else setModal(html);
 }
 function courtDan() {
@@ -112,7 +112,8 @@ ACT.payQuota = () => { const p = LT.payQuota(G); toast(p > 0 ? 'Đã nộp bù '
 ACT.bocao = el => { const r = LT.issueBocao(G, el.dataset.id); toast(r.ok ? 'Đã ban bố cáo' : r.err, r.ok ? 'good' : 'bad'); renderCourt(); ui(); };
 ACT.subPc = el => { G.subs[+el.dataset.i].pc = el.value; renderCourt(); };
 ACT.subNop = el => { G.subs[+el.dataset.i].nop = +el.value; renderCourt(); };
-ACT.relocate = el => { const id = +el.dataset.id, c = G.world.cities[id]; if (!confirm('Dời trị sở sang ' + c.n + '? Bản đồ xây tay sẽ chuyển sang thành đó; thành cũ thành bảng số liệu.')) return; const r = LT.relocate(G, id); if (!r.ok) { toast(r.err, 'bad'); return; } closeModal(); afterRelocate(); toast('Đã dời trị sở sang ' + r.to + ' (' + LT.fmtN(r.ho) + ' hộ)', 'good'); };
+ACT.relocate = el => { const id = +el.dataset.id, c = G.world.cities[id]; ask('Dời trị sở sang ' + c.n + '? Bản đồ xây tay sẽ chuyển sang thành đó; thành cũ thành bảng số liệu.', () => doRelocate(id), 'Dời trị sở'); };
+function doRelocate(id) { const r = LT.relocate(G, id); if (!r.ok) { toast(r.err, 'bad'); return; } closeModal(); afterRelocate(); toast('Đã dời trị sở sang ' + r.to + ' (' + LT.fmtN(r.ho) + ' hộ)', 'good'); };
 ACT.goPromo = () => { const p = LT.promotion(G); if (!p || !p.ready) { toast('Chưa đủ điều kiện', 'bad'); return; } if (G.rank >= 4) { openCourt('quanlo'); return; } LT.promote(G); buildBar(); closeModal(); ui(); };
 ACT.goPath = el => { const ok = LT.promote(G, { path: el.dataset.p }); if (!ok) { toast('Chưa đủ điều kiện cho con đường này', 'bad'); return; } buildBar(); closeModal(); ui(); };
 ACT.goEmperor = () => { const nm = ($('inEra') && $('inEra').value) || 'Thiên Hựu'; if (!LT.proclaim(G, nm)) { toast('Chưa đủ điều kiện xưng đế', 'bad'); return; } buildBar(); closeModal(); ui(); };

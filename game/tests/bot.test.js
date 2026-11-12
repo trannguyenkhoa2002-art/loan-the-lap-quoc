@@ -103,6 +103,21 @@ function manageCities() {
   }
 }
 let cool = 0;
+// ---- hướng chơi (STYLE): climb = leo chức cổ điển; van / chinh / cat = thêm việc của con đường quyền lực; conquer = chinh phạt có đồn trú; trade = buôn bán ----
+const STYLE = process.env.STYLE || 'climb', FIDS = Object.keys(LT.COURT_FACTIONS);
+let maxArmy = 0, maxMine = 1, garrisoned = 0, tradeP = 0;
+function hireIdle() { const O = LT.off(G); if (O.list.filter(o => !o.post).length >= 2) return; if (G.res.tien < 400) return; const r = LT.offSeek(G, 'khoacu'); if (r.ok && O.pool.length) LT.offHire(G, O.pool[0].id); }
+function garrisonStep() { for (const c of LT.ownedCities(G)) { if (c.qt == null) continue; const need = Math.max(20, Math.round(c.ho * .04)); if (c.gar < need && LT.campArmy(G) > 800 && !G.camp) { const r = LT.garrison(G, c.id, Math.min(need - c.gar + 20, 300)); if (r.ok) garrisoned += r.put; } if (c.qt < 60) { c.nop = Math.min(c.nop, .4); } } }
+function styleStep() {
+  if (weeks % 3 === 1 && (STYLE === 'conquer' || STYLE === 'cat' || STYLE === 'chinh' || STYLE === 'van')) garrisonStep();
+  const P = LT.pw(G); if (G.rank < 2) return;
+  if (weeks % 9 === 3) {
+    if (STYLE === 'van') { hireIdle(); for (const id of ['giamlao', 'doluong', 'chinhdon']) if (G.res.tien > 700) LT.pwReform(G, id); for (const f of ['vanthan', 'noithan']) if (G.res.tien > 700) LT.pwAct(G, 'ketgiao', f); if (LT.off(G).list.some(o => !o.post) && G.res.tien > 600) LT.pwAct(G, 'tiencu', 'vanthan'); for (let lv = 1; lv <= 3; lv++) if (P.tt < lv && !LT.ttCheck(G, lv)) LT.pwTrongThan(G); }
+    if (STYLE === 'chinh') { hireIdle(); for (const f of FIDS) if (G.res.tien > 900) LT.pwAct(G, 'ketgiao', f); if (LT.off(G).list.some(o => !o.post) && G.res.tien > 700) for (const f of ['vanthan', 'huancuu', 'ngoaithich']) LT.pwAct(G, 'tiencu', f); if (weeks % 54 === 3) LT.pwAct(G, 'lienhon', FIDS[(weeks / 54 | 0) % 4]); if (weeks % 72 === 3) { const lo = FIDS.slice().sort((a, b) => P.court.f[a].att - P.court.f[b].att)[0]; LT.pwAct(G, 'muachuoc', lo); } for (let lv = 1; lv <= 3; lv++) if (P.tt < lv && !LT.ttCheck(G, lv)) LT.pwTrongThan(G); if (LT.courtControl(G) >= .55) { for (const m of ['buonhiem', 'giamcong']) LT.pwManip(G, m); } }
+    if (STYLE === 'cat' && G.rank >= 4 && LT.armyCount(G) >= 0.45 * LT.armyCap(G) && LT.mineCount(G) >= 4) { if (P.stance !== 'cat') LT.pwStance(G, 'cat'); if (G.res.tien > 500) for (const f of ['huancuu', 'noithan']) LT.pwAct(G, 'ketgiao', f); }
+  }
+  if (STYLE === 'trade' && weeks % 4 === 0 && LT.marketTier(G) >= 1) { for (const k of LT.GOOD_IDS) { const p = LT.localPrice(G, k), b = LT.localBase(G, k); if (p < b * .8 && G.res.tien > 600) { const q = Math.min(120, Math.floor(G.res.tien * .15 / p)); if (q > 0) LT.marketTrade(G, k, q, 'buy'); } else if (p > b * 1.15 && (G.res[k] || 0) > 20) { LT.marketTrade(G, k, Math.min(G.res[k], 120), 'sell'); } } }
+}
 function upgradeAll() { for (const u of G.units) if (u.tb < 3 && u.tan <= 0 && G.res.tien > 900 + G.pend.tien) LT.upgradeEquip(G, u.id); }
 function campaignStep() {
   if (G.rank < 3) return;
@@ -155,12 +170,19 @@ while (!G.over && weeks < MAXY * 36) {
   const p = LT.promotion(G);
   if (G.rank === 1 && p && p.needExam) exam();
   if (p && p.ready) { if (G.rank === 4) LT.promote(G, { path: p.paths.phong.ok ? 'phong' : 'lap' }); else if (G.rank === 5) LT.proclaim(G, 'Thiên Hựu'); else LT.promote(G); resolveAll(); }
-  campaignStep(); resolveAll();
+  campaignStep(); resolveAll(); styleStep(); maxArmy = Math.max(maxArmy, LT.armyCount(G)); maxMine = Math.max(maxMine, LT.mineCount(G));
   if (G.rank !== lastRank) { log.push('hạng ' + G.rank + ' (' + LT.RANKS[G.rank].n + ') năm ' + G.year + ' [tuần ' + weeks + ']'); lastRank = G.rank; }
   if (process.env.DBG && G.week === 1) console.log('  Y' + G.year + ' hộ ' + LT.totalHo(G) + ' tiền ' + Math.round(G.res.tien) + ' lương ' + Math.round(G.res.luong) + '+' + Math.round(G.dan.luong) + ' gỗ ' + Math.round(G.res.go) + ' đá ' + Math.round(G.res.da) + ' DT ' + Math.round(G.stat.dantam) + ' TA ' + Math.round(G.stat.trian) + ' VS ' + Math.round(G.stat.vesinh) + ' PV ' + Math.round(G.stat.phonvinh) + ' quân ' + LT.armyCount(G) + ' ctr ' + G.bl.length + ' khảo ' + (G.khao.history.length ? G.khao.history[G.khao.history.length - 1].total : '-') + ' nghi ' + Math.round(G.nghiky) + (process.env.DBG === '2' ? ' | tiền: ' + Object.entries(G.flow.lastYear.tien || {}).sort((a, b) => a[1] - b[1]).slice(0, 6).map(e => e[0].slice(0, 26) + ' ' + Math.round(e[1])).join(' | ') + ' | hộ: ' + Object.entries(G.flow.lastYear.ho || {}).map(e => e[0].slice(0, 26) + ' ' + Math.round(e[1])).join(' | ') + ' | H ' + JSON.stringify(G.H) : ''));
   if (weeks % 36 === 0) { for (const k in G.res) if (!isFinite(G.res[k]) || G.res[k] < -1e-6) { console.log('LỖI số xấu res.' + k); process.exit(1); } }
 }
+if (process.env.DEMO100K) { // thử mộ lính hợp lệ (đúng luật, đúng giá) tới ≥ 100.000 và giữ 1 năm
+  const before = LT.armyCount(G); let tries = 0, why = ''; const cs = LT.ownedCities(G).sort((a, b) => b.ho - a.ho);
+  while (LT.armyCount(G) < 100000 && tries++ < 800) { let ok = false; for (const c of cs) { const r = LT.recruit(G, 'truongthuong', Math.min(2500, 100000 - LT.armyCount(G)), c.id); if (r.ok) { ok = true; break; } why = r.err; } if (!ok) break; }
+  const got = LT.armyCount(G); let minTien = G.res.tien, unpaid = 0; for (let i = 0; i < 36; i++) { for (const b of G.bl) if (b.building) { b.progress = 1; b.building = false; } LT.tickWeek(G); resolveAll(); minTien = Math.min(minTien, G.res.tien); unpaid = Math.max(unpaid, G.armyUnpaid || 0); }
+  console.log('THỬ 100K: quân trước ' + before + ' → mộ được ' + got + (got < 100000 ? ' (dừng vì: ' + why + ')' : '') + '; sau 1 năm còn ' + LT.armyCount(G) + ', tiền thấp nhất ' + Math.round(minTien) + ', tuần nợ lương tối đa ' + unpaid + ', dân tâm ' + Math.round(G.stat.dantam));
+}
 const pr = LT.promotion(G);
+console.log('KẾT QUẢ STYLE=' + STYLE + ' ach: ' + Object.keys(G.pw.ach).map(k => k + '@' + G.pw.ach[k].y).join(', ') + ' | quân tối đa ' + maxArmy + ' | thành nhiều nhất ' + maxMine + ' (cuối ' + LT.mineCount(G) + ') | đồn trú đã đặt ' + garrisoned + ' | kinh đô giữ ' + G.world.cities.filter(c => c.mine && c.capital).length + ' | hộ các thành thuộc quyền ' + LT.ownedCities(G).reduce((a, c) => a + c.ho, 0) + ' (lính/hộ ' + LT.LINH_PER_HO + ') | lãi buôn ' + (G.trade2 ? Math.round(Object.values(G.trade2.ledger).reduce((a, b) => a + Math.max(0, b), 0)) : 0));
 console.log('--- Bot không bơm: ' + LT.NATIONS[NAT].n + ', hạt giống ' + SEED + ', ' + (Date.now() - t0) + ' ms');
 console.log('Mốc: ' + log.join(' · '));
 console.log('Kết thúc năm ' + G.year + ' tuần ' + G.week + (G.over ? ' — ' + G.over.title + ': ' + G.over.text.slice(0, 90) : ' (hết thời gian thử)') + ' | hạng ' + G.rank + ' | hộ ' + LT.totalHo(G) + ' | công trình ' + G.bl.length + ' | thành ' + LT.mineCount(G) + ' | quân ' + LT.armyCount(G) + ' | tiền ' + Math.round(G.res.tien) + ' | trận thắng ' + G.wins + ' | quân công ' + G.quanCong + ' | khảo gần nhất ' + (G.khao.history.length ? G.khao.history[G.khao.history.length - 1].total : '-') + ' | hạng Thượng ' + G.khao.thuong);

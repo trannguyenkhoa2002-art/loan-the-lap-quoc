@@ -475,6 +475,7 @@ LT.alerts = function (G) {
   if (st.trian < 35) a.push({ l: 1, t: 'Trị an thấp (' + Math.round(st.trian) + '): trộm cướp, cháy lớn. Dựng trạm tuần.' });
   if (st.vesinh < 40) a.push({ l: 1, t: 'Vệ sinh thấp (' + Math.round(st.vesinh) + '): mùa hè có dịch. Dựng giếng, y quán.' });
   if (st.phonvinh < 28) a.push({ l: 1, t: 'Phồn vinh thấp (' + Math.round(st.phonvinh) + '): thương nhân bỏ đi. Dựng chợ, lát đường.' });
+  for (const c of G.world.cities) if (c.mine && c.qt != null && c.id !== G.seatId) { const need = Math.max(20, Math.round(c.ho * .04)); if (c.qt < 45 && c.gar < need) a.push({ l: c.qt < 32 ? 2 : 1, t: 'Thành ' + c.n + ' sắp nổi loạn: quy thuận ' + Math.round(c.qt) + '/70, đồn trú ' + c.gar + '/' + need + '. Đặt đồn trú (Thiên hạ → Thành của bạn).' }); }
   if (G.flags.homeless) a.push({ l: 1, t: 'Hết chỗ ở — dân muốn đến nhưng không có nhà. Dựng thêm nhà dân.' });
   if (G.city.disconnected > 0) a.push({ l: 1, t: G.city.disconnected + ' công trình chưa nối đường tới kho/chợ (chỉ đạt 60%).' });
   if ((LT.count(G, 'forge') || LT.count(G, 'armory')) && G.res.quang < 12 && !LT.count(G, 'mine')) a.push({ l: 1, t: 'Lò rèn thiếu quặng sắt: xây 🪨 Mỏ sắt (nhóm Thủ công, cạnh Lò rèn) ở ô có mạch quặng đỏ gỉ — chọn công trình rồi bấm "Tới chỗ đặt gần nhất".' });
