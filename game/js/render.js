@@ -95,14 +95,14 @@ function placeableTiles() {
 // ---- vòng vẽ chính ------------------------------------------------------------
 function draw() {
   if (!G) return;
-  frameNo++; budget = 4; prevVisB = visB; visB = 0; ZM = performance.now() - zoomT < 260;
-  if (frameNo % 240 === 0) for (const [k, v] of sprites) if (v.seen < frameNo - 300) sprites.delete(k);
+  const tD0 = performance.now(); frameNo++;
   if (s !== lastS) { lastS = s; zoomT = performance.now(); }
+  ZM = performance.now() - zoomT < 240; PERF.moving = Math.abs(ox - lastOx) + Math.abs(oy - lastOy) > .5; lastOx = ox; lastOy = oy;
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.globalCompositeOperation = 'source-over'; GLOW = [];
   { const ph = (T / 150 + .1) % 1, sm = (a, b, v) => { const u = Math.max(0, Math.min(1, (v - a) / (b - a))); return u * u * (3 - 2 * u); };
     NIGHT = ph < .8 ? sm(.58, .68, ph) : 1 - sm(.92, 1, ph); DUSK = Math.max(0, 1 - Math.abs(NIGHT - .5) * 2); }
   ctx.clearRect(0, 0, W, H);
-  drawGroundCached();
+  drawChunksGround(); drawClouds(); drawGridOverlay();
   if (G.tool && !ZM) { const pl = placeableTiles(), tp = .22 + .12 * Math.sin(performance.now() / 300); for (const t of pl) { const p = P(t.x + .5, t.y + .5); if (p.x < -60 || p.y < -60 || p.x > W + 60 || p.y > H + 60) continue; quad(t.x, t.y, 1, 1, 0, 'rgba(255,230,120,' + tp.toFixed(2) + ')', 'rgba(255,240,170,.55)', 1); } }
   if (hover && G.tool) {
     const err = LT.canPlace(G, G.tool, hover.x, hover.y), ok = !err;
@@ -116,32 +116,8 @@ function draw() {
   }
   if (UI.area && G.tool) { const A = UI.area, x0 = Math.min(A.x0, A.x1), x1 = Math.max(A.x0, A.x1), y0 = Math.min(A.y0, A.y1), y1 = Math.max(A.y0, A.y1); let cnt = 0, okN = 0; for (let yy = y0; yy <= y1 && cnt < 900; yy++) for (let xx = x0; xx <= x1 && cnt < 900; xx++) { cnt++; const e = LT.canPlace(G, G.tool, xx, yy); if (!e) okN++; quad(xx, yy, 1, 1, 0, e ? '#d9534a55' : '#9be08a88', null); } A.cnt = cnt; A.ok = okN; }
   if (G.fireFlash) { const f = G.fireFlash; FL.push({ x: f.x + .5, y: f.y + .5, txt: '🔥', t: 0 }); G.fireFlash = null; }
-  const L = [];
-  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
-    const q = G.map[y * N + x]; if (q.t === 'g' || q.t === 'w') continue;
-    const a = P(x, y); if (a.x < -TW * 2 * s || a.x > W + TW * 2 * s || a.y < -TH * 3 * s || a.y > H + 80 * s) continue;
-    if (q.t === 'f') L.push({ k: x + y + 1, f: (s < .5 || ZM) ? () => { const p = P(x + .5, y + .5); dot({ x: p.x, y: p.y - 6 * s }, 9 * s * (.8 + q.v * .4), q.v > .5 ? '#4f8a4a' : '#3c6a45'); } : () => tree(x, y, q.v) });
-    else if (q.t === 'r') L.push({ k: x + y + 1, f: (s < .5 || ZM) ? () => { const p = P(x + .5, y + .5); dot({ x: p.x, y: p.y - 3 * s }, 8 * s, '#9a9d9a'); } : () => rock(x, y, q.v) });
-    else if (q.t === 'm') L.push({ k: x + y + 1, f: () => ore(x, y, q.v) });
-    else if (q.t === 'h' && !q.b) L.push({ k: x + y + .6, f: () => mound(x, y, q.v) });
-  }
-  for (const b of G.bl) { if (isRoad(b)) continue; const a = P(b.x, b.y); if (a.x < -TW * 3 * s || a.x > W + TW * 3 * s || a.y < -TH * 6 * s || a.y > H + 120 * s) continue; L.push(b.k === 'hall' ? { k: b.x + b.y + 2.6, f: () => drawBuildingCached(b) } : { k: b.x + b.y + 1, f: () => drawBuildingCached(b) }); }
-  if (!ZM) WALK.forEach((w, i) => { const st = ST[w.cls] || ST.luu; L.push({ k: w.x + w.y, f: () => person(w.x, w.y, w.cls === 'quan' && i % 2 ? '#6a3a8a' : st[0], w.ph, '#f1c9a5', st[1], (w.cls === 'nong' || w.cls === 'thuong') && i % 2 === 0, w.cls === 'binh') }); });
-  if (G.raid) {
-    const r = G.raid, k = Math.max(0, Math.min(.92, 1 - r.t / (r.t0 || 3))), n = Math.min(10, Math.ceil(r.total / 25));
-    for (let i = 0; i < n; i++) {
-      const u = 8 + rnd(i * 7 + r.side) * 30, sx = r.side === 0 ? u : r.side === 1 ? N - .5 : r.side === 2 ? u : .5, sy = r.side === 0 ? .5 : r.side === 1 ? u : r.side === 2 ? N - .5 : u;
-      const rx = sx + (G.hx + 1 - sx) * k + Math.sin(T * 2 + i) * .15, ry = sy + (G.hy + 1 - sy) * k + Math.cos(T * 2 + i) * .15;
-      L.push({ k: rx + ry, f: () => { person(rx, ry, i % 2 ? '#3a2a2a' : '#4a2f2a', i * 3, '#c9a184'); const p = P(rx, ry, 16); line({ x: p.x + 4 * s, y: p.y + 9 * s }, { x: p.x + 7 * s, y: p.y - 6 * s }, '#6b4a2e', 1.2); poly([{ x: p.x + 5.8 * s, y: p.y - 5 * s }, { x: p.x + 8.2 * s, y: p.y - 5.5 * s }, { x: p.x + 7.6 * s, y: p.y - 10 * s }], '#d0d4d8', OUT, .4); if (i === 0) flag(rx + .25, ry, 0, 30, '#2f2a2a'); } });
-    }
-  }
-  sceneActors = ZM ? [] : traffic.map(a => ({ k: a.x + a.y, f: () => a.kind === 0 ? drawRider(a) : drawWagon(a) }));
-  if (!ZM) for (const a of traffic) if (a.kind === 2 && a.trail) for (const n of [9, 18, 27]) {
-    const q = a.trail[n]; if (!q || !roadAt(Math.floor(q.x), Math.floor(q.y))) continue;
-    sceneActors.push({ k: q.x + q.y, f: () => { if (n === 27) { person(q.x, q.y, '#81617d', a.phase, '#e5c3a0', 'non', 1); return; } horseBody(q.x, q.y, a.phase + n, q.dirX ?? 1, q.dirY ?? 0, '#78634d'); box(q.x - .08, q.y - .15, .17, .19, 10, 5, n === 9 ? '#a58e63' : '#907254'); } });
-  }
-  L.push(...sceneActors); L.sort((a, b) => a.k - b.k); for (const o of L) o.f();
-  for (let i = 0; i < 5; i++) { const u = ((T * .05 + i * .21) % 1), p = P(-4 + u * 34 + i * 2, i * 6 - 2 + Math.sin(u * 9 + i) * 2, 95 + i * 8), f = Math.sin(T * 8 + i * 2) * 3 * s; if (NIGHT > .7) break; ctx.strokeStyle = '#3a3f44'; ctx.lineWidth = lw() * 1.1; ctx.beginPath(); ctx.moveTo(p.x - 5 * s, p.y + f); ctx.quadraticCurveTo(p.x - 2 * s, p.y - 2 * s, p.x, p.y); ctx.quadraticCurveTo(p.x + 2 * s, p.y - 2 * s, p.x + 5 * s, p.y + f); ctx.stroke(); }
+  drawChunksObjects();
+  for (let i = 0; GFX.atmos && i < 5; i++) { const u = ((T * .05 + i * .21) % 1), p = P(-4 + u * 34 + i * 2, i * 6 - 2 + Math.sin(u * 9 + i) * 2, 95 + i * 8), f = Math.sin(T * 8 + i * 2) * 3 * s; if (NIGHT > .7) break; ctx.strokeStyle = '#3a3f44'; ctx.lineWidth = lw() * 1.1; ctx.beginPath(); ctx.moveTo(p.x - 5 * s, p.y + f); ctx.quadraticCurveTo(p.x - 2 * s, p.y - 2 * s, p.x, p.y); ctx.quadraticCurveTo(p.x + 2 * s, p.y - 2 * s, p.x + 5 * s, p.y + f); ctx.stroke(); }
   if (NIGHT > .01) {
     ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = lerpC(lerpC('#ffffff', '#ffc48a', DUSK * .8), '#6a78ae', NIGHT * .66); ctx.fillRect(0, 0, W, H);
     ctx.globalCompositeOperation = 'lighter'; for (const g2 of GLOW) { const gr = ctx.createRadialGradient(g2[0], g2[1], 0, g2[0], g2[1], g2[2]); gr.addColorStop(0, `rgba(${g2[3]},${.42 * NIGHT})`); gr.addColorStop(1, `rgba(${g2[3]},0)`); ctx.fillStyle = gr; ctx.fillRect(g2[0] - g2[2], g2[1] - g2[2], g2[2] * 2, g2[2] * 2); }
@@ -152,6 +128,7 @@ function draw() {
   ctx.globalAlpha = 1;
   if (G.raid) { ctx.fillStyle = `rgba(142,47,42,${.05 + .035 * Math.sin(T * 5)})`; ctx.fillRect(0, 0, W, H); }
   drawAtmosphere();
+  LASTDRAW = performance.now() - tD0;
 }
 
 // ---- bản đồ nhỏ (lớp địa hình vẽ một lần, công trình vẽ lại mỗi 0,3 giây) ----
@@ -173,55 +150,10 @@ function drawMini() {
   mc.strokeStyle = '#fae3ad'; mc.lineWidth = 1.4; mc.beginPath();
   [[0, 0], [W, 0], [W, H], [0, H]].forEach(([x, y], i) => { const a = (x - ox) / (TW / 2 * s), b = (y - oy) / (TH / 2 * s), p = MP((a + b) / 2, (b - a) / 2); i ? mc.lineTo(p.x, p.y) : mc.moveTo(p.x, p.y); }); mc.closePath(); mc.stroke();
 }
-// ---- bộ đệm hình (sprite) cho công trình và mặt đất: vẽ nặng nên chỉ vẽ lại khi cần ----
-const sprites = new Map(); let lastS = 0, zoomT = 0, frameNo = 0, budget = 3, visB = 0, prevVisB = 0;
-const SPR = { house: [110, 130], well: [90, 100], watch: [100, 130], terrace: [120, 150], mansion: [130, 170], clinic: [120, 130], granary: [120, 130], wall: [90, 110], market: [140, 140], barracks: [140, 140], tower: [110, 190], gate: [130, 150], temple: [140, 190], school: [130, 150], inn: [120, 130], silk: [130, 130], cloth: [130, 130], winery: [120, 130], kiln: [120, 130] };
-function spriteDraw(b, fn, w, h) {
-  const key = [DPR, Math.round(NIGHT * 6), b.k, b.on ? 1 : 0].join('|'), now = performance.now();
-  if (SPR[b.k] && b.k !== 'hall') { w = SPR[b.k][0]; h = SPR[b.k][1]; }
-  const bw = Math.ceil(w * s), bh = Math.ceil(h * s), ay = bh - 22 * s;
-  let e = sprites.get(b.id);
-  visB++;
-  const ttl = prevVisB < 160 ? 1400 : prevVisB < 450 ? 5000 : 1e9;
-  const zooming = e && Math.abs(e.s - s) > .0005 && now - zoomT < 260;
-  const stale = !e || e.key !== key || Math.abs(e.s - s) > .0005, aged = e && now - e.t > ttl + (b.id % 12) * 90;
-  if (!zooming && ((stale && (budget > 0 || !e)) || (aged && budget > 0))) {
-    budget--;
-    if (!e || e.bw !== bw || e.bh !== bh || e.dpr !== DPR) { const c = document.createElement('canvas'); c.width = bw * DPR; c.height = bh * DPR; e = { c, bw, bh, dpr: DPR }; sprites.set(b.id, e); }
-    const o = e.c.getContext('2d'); o.setTransform(DPR, 0, 0, DPR, 0, 0); o.clearRect(0, 0, bw, bh);
-    const sox = ox, soy = oy, sGLOW = GLOW, a = P(b.x + (b.w ? b.w / 2 : .5), b.y + (b.h ? b.h / 2 : .5));
-    ox += bw / 2 - a.x; oy += ay - a.y; GLOW = []; ctx = o;
-    try { fn(); } finally { ctx = MAINCTX; ox = sox; oy = soy; }
-    e.gl = GLOW; GLOW = sGLOW; e.key = key; e.t = now; e.s = s; e.ay = ay;
-  }
-  e.seen = frameNo;
-  const k = s / e.s, p = P(b.x + (b.w ? b.w / 2 : .5), b.y + (b.h ? b.h / 2 : .5)), dx = p.x - e.bw / 2 * k, dy = p.y - e.ay * k;
-  ctx.drawImage(e.c, dx, dy, e.bw * k, e.bh * k);
-  if (NIGHT > .05) for (const g2 of e.gl) GLOW.push([g2[0] * k + dx, g2[1] * k + dy, g2[2] * k, g2[3]]);
-}
+let lastS = 0, zoomT = 0, frameNo = 0, lastOx = 0, lastOy = 0, LASTDRAW = 0;
 const LOWC = { house: '#e2d2ae', terrace: '#e8dcc2', mansion: '#e6d9bd', farm: '#b9c76a', wall: '#9d998e', tower: '#9d998e', gate: '#a63a2a', temple: '#a63a2a', school: '#f2ede0', market: '#c9a36a', barracks: '#a9a498', granary: '#c9a36a' };
 function lowBuilding(b) {
   const h = { hall: 40, tower: 40, temple: 34, mansion: 30, terrace: 22, wall: 14, house: 14 }[b.k] || 14, w = b.w || 1;
   if (b.k === 'farm' || b.k === 'tea' || b.k === 'mulberry' || b.k === 'salt' || b.k === 'canal') { quad(b.x + .06, b.y + .06, .88, .88, 0, LOWC.farm, null); return; }
   box(b.x + .14, b.y + .14, w - .28, w - .28, 0, h, LOWC[b.k] || '#d6a46c');
-}
-function drawBuildingCached(b) {
-  if (s < .45) return lowBuilding(b);
-  if (b.k === 'hall') return spriteDraw(b, drawHall, 320, 280);
-  if (b.building || b.k === 'farm' || b.k === 'tea' || b.k === 'mulberry' || b.k === 'canal' || b.k === 'salt' || T - (b.born || -9) < .35) return drawB(b);
-  return spriteDraw(b, () => drawB(b), 170, 210);
-}
-let groundCache = null;
-function drawGroundCached() {
-  let built = 0; for (const b of G.bl) if (!b.building) built++;
-  const key = [ox.toFixed(1), oy.toFixed(1), s.toFixed(3), W, H, DPR, showGrid ? 1 : 0, G.tool ? 1 : 0, G.bl.length, built, Math.round(NIGHT * 6)].join('|'), now = performance.now();
-  if (!groundCache || groundCache.W !== W || groundCache.H !== H || groundCache.dpr !== DPR) { const c = document.createElement('canvas'); c.width = W * DPR; c.height = H * DPR; groundCache = { c, W, H, dpr: DPR }; }
-  const zoomingNow = now - zoomT < 260 && groundCache.key && groundCache.s && Math.abs(groundCache.s - s) > .0005;
-  if (zoomingNow) { const kk = s / groundCache.s; ctx.drawImage(groundCache.c, ox - groundCache.ox * kk, oy - groundCache.oy * kk, W * kk, H * kk); return; }
-  if (groundCache.key !== key || now - groundCache.t > 700) {
-    const o = groundCache.c.getContext('2d'); o.setTransform(DPR, 0, 0, DPR, 0, 0); o.clearRect(0, 0, W, H);
-    const sG = GLOW; ctx = o; try { drawGround(); } finally { ctx = MAINCTX; GLOW = sG; }
-    groundCache.key = key; groundCache.t = now; groundCache.ox = ox; groundCache.oy = oy; groundCache.s = s;
-  }
-  ctx.drawImage(groundCache.c, 0, 0, W, H);
 }

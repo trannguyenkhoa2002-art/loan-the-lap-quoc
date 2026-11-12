@@ -94,3 +94,10 @@ Kiểm thử: `node tests/battle.test.js`, `sim.test.js`, `war2.test.js`, `round
 - **Giao thương** (`js/trade.js`, `js/ui-trade.js`): mua bán trực tiếp ở chợ, thương đội (đường bộ, hải thương, thuế quá cảnh các thành đi qua, hao đường, cướp, cấm vận), đặc sản/thiếu hụt theo vùng, thương lộ nội bộ, thuế quá cảnh chỉnh được, cấp phường thị, Bến cảng.
 - **Quan viên tự quản** (`js/officials.js`, `js/ui-off.js`): nhân vật thật (Thống/Võ/Trí/Chính/Đức, trung thành, dã tâm, liêm–tham ẩn, đặc tính, bổng lộc), 6 nguồn tuyển, bổ nhiệm/bãi miễn/luân chuyển, bổ nhiệm nhanh, chức ở trị sở, quan tự phát triển/mộ quân/xử biến cố, nhật ký, khảo khóa, nhiệm kỳ, hồi tỵ, ngự sử thanh tra, ly khai.
 - Kiểm thử: `tests/round5.test.js`; bot không gian lận: Vương năm 943, Hoàng đế năm 946.
+
+## Giai đoạn 1 — Tối ưu hiệu năng
+
+- **Vẽ theo vùng (chunk 8×8 ô)** (`js/chunks.js` logic thuần, `js/render-chunk.js`): mỗi vùng có hai ảnh đệm (mặt đất + vật thể tĩnh), chỉ vẽ lại vùng nào đổi (đặt/phá/xong thi công/ngày-đêm/đổi đồ họa), chỉ ghép các vùng giao khung nhìn, vẽ sẵn vòng vùng ngay sát khung. Việc vẽ lại chia nhỏ qua nhiều khung theo ngân sách thời gian. Người, xe, công trình đang xây, phủ vẽ trực tiếp mỗi khung và chỉ trong vùng nhìn thấy.
+- **Zoom mượt**: lệnh zoom chỉ đặt mức đích; mỗi khung tiến dần quanh vị trí con trỏ. Đang zoom thì co giãn ảnh đã có; ngừng zoom một nhịp mới vẽ lại sắc nét.
+- **Đồ họa Thấp / Trung bình / Cao** (☰ Trình đơn, lưu trong localStorage `lt-gfx`, không nằm trong bản lưu; mặc định theo máy, tự hạ một bậc nếu máy chậm ngay từ đầu). **Bộ đếm hiệu năng**: phím F3 hoặc ☰ Trình đơn.
+- Đo: `tests/bench-browser.js` (kịch bản lặp lại được), `tests/round6.test.js` (chọn vùng, chữ ký, bản lưu). Định dạng bản lưu không đổi (phiên bản 8).

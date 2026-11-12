@@ -57,8 +57,8 @@ function drawRoad(b){const x=b.x,y=b.y,pv=b.k!=='road',c=pv?'#bdb9aa':'#c6aa7a',
   else{const v=rnd(x*13+y*7);for(let i=0;i<3;i++)dot(P(x+.32+rnd(v*9+i)*.36,y+.32+rnd(v*5+i)*.36),.8*s,'#a2865a');
     if(Wt||E){L2(Wt?0:a,.42,E?1:q,.42,'rgba(110,85,50,.3)',.6);L2(Wt?0:a,.58,E?1:q,.58,'rgba(110,85,50,.3)',.6)}
     if(Nn||S){L2(.42,Nn?0:a,.42,S?1:q,'rgba(110,85,50,.3)',.6);L2(.58,Nn?0:a,.58,S?1:q,'rgba(110,85,50,.3)',.6)}}}
-function drawGround(){
-  for(let y=0;y<N;y++)for(let x=0;x<N;x++){const q=G.map[y*N+x],a=P(x,y);
+function drawGroundTiles(rx0,ry0,rx1,ry1){
+  for(let y=ry0;y<ry1;y++)for(let x=rx0;x<rx1;x++){const q=G.map[y*N+x],a=P(x,y);
     if(a.x<-TW*s||a.x>W+TW*s||a.y<-TH*2*s||a.y>H+TH*s)continue;
     quad(x,y,1,1,0,q.c,q.c,.8);
     if(q.t==='g'){if(q.b)continue;const v=q.v;
@@ -75,17 +75,20 @@ function drawGround(){
       if(q.v>.62){const l=P(x+.3+q.v*.3,y+.6);ctx.fillStyle='#5f9a55';ctx.strokeStyle='#3f6f3f';ctx.lineWidth=lw()*.5;ctx.beginPath();ctx.ellipse(l.x,l.y,4.5*s,2.4*s,0,.5,6.6);ctx.lineTo(l.x,l.y);ctx.fill();ctx.stroke();if(q.v>.82)dot({x:l.x+4*s,y:l.y-2*s},1.8*s,'#f3a9c0','#b8607a')}}
     else if(q.t==='r'){for(let i=0;i<3;i++)dot(P(x+rnd(q.v*9+i),y+rnd(q.v*5+i)),.9*s,'#8a8774')}
     else if(q.t==='f'&&q.v>.5){const p=P(x+.15,y+.6);line(p,{x:p.x-2*s,y:p.y-3.5*s},'#5c8a4c',1);line(p,{x:p.x+2*s,y:p.y-3.5*s},'#5c8a4c',1)}}
+}
+function drawGroundEdge(){
   poly([P(0,N),P(N,N),P(N,N,-14),P(0,N,-14)],'#8a6a48');poly([P(N,0),P(N,N),P(N,N,-14),P(N,0,-14)],'#6f5338');
   line(P(0,N,-5),P(N,N,-5),'#00000022',1);line(P(N,0,-5),P(N,N,-5),'#00000022',1);line(P(0,N,-10),P(N,N,-10),'#00000022',1);line(P(N,0,-10),P(N,N,-10),'#00000022',1);
-  for(const b of G.bl)if(isRoad(b)||b.k==='gate'){const a=P(b.x,b.y);if(a.x<-TW*2*s||a.x>W+TW*2*s||a.y<-TH*3*s||a.y>H+TH*2*s)continue;if(s<.45){quad(b.x,b.y,1,1,0,b.k==='pave'?'#c9c5b6':b.k==='bridge'?'#a98b5a':'#c6aa7a',null);continue}drawRoad(b)}
-  // bóng mây trôi
-  for(let i=0;i<3;i++){const cx=((T*.35+i*13)%44)-9,cy=4+i*8+Math.sin(i*3)*3,p=P(cx,cy);ctx.fillStyle='rgba(30,50,40,.055)';ctx.beginPath();ctx.ellipse(p.x,p.y,170*s,62*s,0,0,7);ctx.fill()}
-  // bóng công trình
-  for(const b of G.bl){if(b.building)continue;const x=b.x,y=b.y,k=b.k;{const a=P(x,y);if(a.x<-TW*3*s||a.x>W+TW*3*s||a.y<-TH*6*s||a.y>H+TH*3*s)continue}
+}
+function drawRoadList(list){
+  for(const b of list){if(!(isRoad(b)||b.k==='gate'))continue;const a=P(b.x,b.y);if(a.x<-TW*2*s||a.x>W+TW*2*s||a.y<-TH*3*s||a.y>H+TH*2*s)continue;if(s<.45){quad(b.x,b.y,1,1,0,b.k==='pave'?'#c9c5b6':b.k==='bridge'?'#a98b5a':'#c6aa7a',null);continue}drawRoad(b)}}
+function drawShadowList(list){
+  for(const b of list){if(b.building)continue;const x=b.x,y=b.y,k=b.k;{const a=P(x,y);if(a.x<-TW*3*s||a.x>W+TW*3*s||a.y<-TH*6*s||a.y>H+TH*3*s)continue}
     if(k==='hall')shadow(x+.15,y+.15,1.7,1.7,[30,44,62,70][G.era]);else if(k==='house')shadow(x+.15,y+.2,.7,.6,22);
     else if(k==='tower')shadow(x+.1,y+.1,.8,.8,58);else if(k==='wall')shadow(x+.2,y+.2,.6,.6,22);
     else if(k==='barracks')shadow(x+.06,y+.2,.88,.6,22);else if(k==='temple')shadow(x+.2,y+.2,.6,.6,52);else if(k==='gate'||k==='beacon')shadow(x+.15,y+.15,.7,.7,30);
     else if(k!=='farm'&&k!=='salt'&&k!=='canal'&&k!=='tea'&&!isRoad(b))shadow(x+.1,y+.2,.75,.55,15)}}
+function drawGround(){drawGroundTiles(0,0,N,N);drawGroundEdge();drawRoadList(G.bl);drawShadowList(G.bl)}
 
 function drawB(b){const x=b.x,y=b.y,v=rnd(x*17+y*31),pop=Math.min(1,(T-(b.born||-9))*4),k=b.k;
   if(pop<1){const c=P(x+.5,y+.5);ctx.save();ctx.translate(c.x,c.y);ctx.scale(1,.4+.6*pop);ctx.translate(-c.x,-c.y)}

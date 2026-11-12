@@ -47,7 +47,7 @@ drawB=function(b){if(b.building){drawSite(b);return}finishedBuilding(b)};
 const traffic=[];let trafficClock=0;
 function roadAt(x,y){return isRoad(tile(x,y)?.b)||tile(x,y)?.b?.k==='gate'&&isBuilt(tile(x,y).b)}
 function updateTraffic(dt){
-  const roads=G.bl.filter(b=>roadAt(b.x,b.y));trafficClock+=dt;
+  trafficClock+=dt;const roads=(trafficClock>3&&traffic.length<10)?G.bl.filter(b=>roadAt(b.x,b.y)):[];
   if(roads.length>=3&&traffic.length<Math.min(10,Math.floor(roads.length/3))&&trafficClock>3){trafficClock=0;const id=traffic.length,seen=new Set(),groups=[];for(const start of roads){const key=start.x+','+start.y;if(seen.has(key))continue;const group=[],queue=[[start.x,start.y]];seen.add(key);for(let i=0;i<queue.length;i++){const [x,y]=queue[i];group.push({x,y});for(const [u,v] of [[x+1,y],[x-1,y],[x,y+1],[x,y-1]]){const k=u+','+v;if(!seen.has(k)&&roadAt(u,v)){seen.add(k);queue.push([u,v])}}}if(group.length>=3*(id%3+1))groups.push(group)}if(groups.length){const group=groups[Math.floor(rnd(id+G.tick)*groups.length)],b=group[Math.floor(rnd(G.tick+id*7)*group.length)];traffic.push({x:b.x+.5,y:b.y+.5,tx:b.x+.5,ty:b.y+.5,prev:null,kind:id%3,phase:id*1.7})}}
   for(let i=traffic.length-1;i>=0;i--){const a=traffic[i],dx=a.tx-a.x,dy=a.ty-a.y,d=Math.hypot(dx,dy);if(!roadAt(Math.floor(a.x),Math.floor(a.y))){traffic.splice(i,1);continue}a.phase+=dt*6;
     if(d<.025){const x=Math.floor(a.tx),y=Math.floor(a.ty),options=[[x+1,y],[x,y+1],[x-1,y],[x,y-1]].filter(([u,v])=>roadAt(u,v));if(!options.length)continue;const forward=options.filter(([u,v])=>!a.prev||u!==a.prev[0]||v!==a.prev[1]),choices=forward.length?forward:options,[nx,ny]=choices[Math.floor(rnd(i*80+Math.floor(a.phase))*choices.length)];a.prev=[x,y];a.tx=nx+.5;a.ty=ny+.5;a.dirX=nx-x;a.dirY=ny-y}

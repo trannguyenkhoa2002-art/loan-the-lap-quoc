@@ -20,25 +20,22 @@ pine=function(p,h,v){const sw=Math.sin(T+v*20)*.7*s;line(p,{x:p.x,y:p.y-h*.7},'#
     poly([{x:tx,y:ty},{x:p.x+ww,y:yy},{x:p.x+ww*.3,y:yy+2*s},{x:p.x,y:yy-2*s}],'#183f3535',null);line({x:p.x-ww*.65,y:yy-2*s},{x:tx,y:ty+3*s},'#b1bd7855',.65)
   }
 };
-const baseGround=drawGround;
-drawGround=function(){
-  baseGround();
-  if(s<.6)return;
+function drawGroundExtras(rx0,ry0,rx1,ry1){
+  if(s<.6||!GFX.decor)return;
   // Fine grass strokes and shoreline reeds use deterministic positions.
-  for(let y=0;y<N;y++)for(let x=0;x<N;x++){const q=tile(x,y),p=P(x+.5,y+.5);if(p.x<-50||p.x>W+50||p.y<-50||p.y>H+50)continue;
+  for(let y=ry0;y<ry1;y++)for(let x=rx0;x<rx1;x++){const q=tile(x,y),p=P(x+.5,y+.5);if(p.x<-50||p.x>W+50||p.y<-50||p.y>H+50)continue;
     if(q.t==='g'&&!q.b&&q.w<2){for(let i=0;i<4;i++){const a=x+rnd(x*77+y*31+i)*.9,b=y+rnd(y*97+x*11+i)*.9,pt=P(a,b),h=(1.5+rnd(i+x+y)*2)*s;line(pt,{x:pt.x+Math.sin(T*.8+x+i)*s,y:pt.y-h},i%2?'#5d794840':'#d9d39a55',.55)}}
     if(q.t==='w'){
       const shimmer=.18+.15*Math.sin(T*1.5+x+y);ctx.save();ctx.globalAlpha=shimmer;for(let i=0;i<3;i++){const u=(T*.12+q.v+i*.28)%1,pt=P(x+.18+u*.6,y+.25+i*.21);line({x:pt.x-3*s,y:pt.y},{x:pt.x+3*s,y:pt.y},'#e5ead0',.8)}ctx.restore();
       if(q.v>.5&&[[-1,0],[0,1]].some(([a,b])=>tile(x+a,y+b)?.t==='g'))for(let i=0;i<3;i++){const pt=P(x+.1+i*.06,y+.8);line(pt,{x:pt.x+Math.sin(T+i)*s,y:pt.y-(6+i%2*3)*s},'#6a8150',.8)}
     }
-    if(showGrid||G.tool){quad(x,y,1,1,0,null,showGrid?'#e5e5bc25':'#e5e5bc10',.55)}
   }
-};
+}
 function drawAtmosphere(){
   ctx.save();
   // A warm directional wash and sparse drifting motes anchor the diorama.
   
-  for(let i=0;i<24;i++){const x=(rnd(i+81)*W+Math.sin(T*.12+i)*26+W)%W,y=(rnd(i+330)*H-T*(2+rnd(i)*5)%H+H)%H;ctx.globalAlpha=(NIGHT>.6?.38:.16)*(.5+.5*Math.sin(T+i));dot({x,y},(i%3===0?1.5:.8),NIGHT>.6?'#e5e99b':'#ffecc4')}
+  if(GFX.atmos)for(let i=0;i<24;i++){const x=(rnd(i+81)*W+Math.sin(T*.12+i)*26+W)%W,y=(rnd(i+330)*H-T*(2+rnd(i)*5)%H+H)%H;ctx.globalAlpha=(NIGHT>.6?.38:.16)*(.5+.5*Math.sin(T+i));dot({x,y},(i%3===0?1.5:.8),NIGHT>.6?'#e5e99b':'#ffecc4')}
   ctx.globalAlpha=1;
   if(hover&&!G.tool){const q=tile(hover.x,hover.y);if(q?.b){const b=q.b,hall=b.k==='hall',p=P(b.x+(hall?1:.5),b.y+(hall?1:.5),hall?[53,68,94,105][G.era]:65),label=hall?'Phủ '+LT.RANKS[G.rank].n:B[b.k].n+(b.building?' · '+Math.floor(b.progress*100)+'%':'');ctx.font='11px Segoe UI';const width=ctx.measureText(label).width+24;ctx.fillStyle='#142e28ed';ctx.strokeStyle='#c6b07899';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(p.x-width/2,p.y-20,width,27,3);ctx.fill();ctx.stroke();ctx.fillStyle='#eadcb7';ctx.textAlign='center';ctx.fillText(label,p.x,p.y-3)}}
   ctx.restore();

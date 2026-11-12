@@ -83,7 +83,9 @@ function step(dt) {
 }
 function frame(now) {
   const dt = Math.min(.1, (now - lastT) / 1000); lastT = now; requestAnimationFrame(frame);
-  step(dt); keyPan(dt); draw();
+  const t0 = performance.now();
+  step(dt); keyPan(dt); zoomStep(dt); draw();
+  perfFrame(now, performance.now() - t0, LASTDRAW);
 }
 function layoutResize() {
   DPR = Math.min(2, window.devicePixelRatio || 1);
@@ -99,7 +101,15 @@ function goNearest() {
   if (bd < 4) { const o = list.filter(t => Math.hypot(t.x - c.x, t.y - c.y) >= 4); if (o.length) best = o.reduce((a, t) => Math.hypot(t.x - c.x, t.y - c.y) < Math.hypot(a.x - c.x, a.y - c.y) ? t : a, o[0]); }
   const p = P(best.x + .5, best.y + .5); ox += W / 2 - p.x; oy += H * .44 - p.y; hover = null; toast('Đã đưa khung nhìn tới ô đặt được gần nhất (' + list.length + ' ô trên bản đồ)', 'good');
 }
-function zoom(f, cx, cy) { const ns = Math.max(.28, Math.min(2.6, s * f)); f = ns / s; ox = cx - (cx - ox) * f; oy = cy - (cy - oy) * f; s = ns; $('zoom-label').textContent = Math.round(s * 100) + '%'; }
+// zoom mượt: lệnh zoom chỉ đặt mức đích; mỗi khung tiến dần tới đích quanh vị trí con trỏ
+let zT = null;
+function zoom(f, cx, cy) { const base = zT ? zT.s : s; zT = { s: Math.max(.28, Math.min(2.6, base * f)), cx, cy }; }
+function zoomStep(dt) {
+  if (!zT) return; const d = zT.s - s;
+  const ns = Math.abs(d) < .0008 * s ? zT.s : s + d * (1 - Math.exp(-dt * 13)), cx = zT.cx, cy = zT.cy; if (ns === zT.s) zT = null;
+  const f = ns / s; ox = cx - (cx - ox) * f; oy = cy - (cy - oy) * f; s = ns; $('zoom-label').textContent = Math.round(s * 100) + '%';
+}
+function zoomNow(f, cx, cy) { const ns = Math.max(.28, Math.min(2.6, s * f)); f = ns / s; ox = cx - (cx - ox) * f; oy = cy - (cy - oy) * f; s = ns; $('zoom-label').textContent = Math.round(s * 100) + '%'; }
 
 // ---- điều khiển ----------------------------------------------------------------------
 const toTile = (sx, sy) => { const a = (sx - ox) / (TW / 2 * s), b = (sy - oy) / (TH / 2 * s); return { x: Math.floor((a + b) / 2), y: Math.floor((b - a) / 2) }; };
@@ -153,7 +163,7 @@ const upF = e => {
 };
 cv.addEventListener('pointerup', upF); cv.addEventListener('pointercancel', upF);
 cv.addEventListener('pointerleave', () => { if (!pts.size) { hover = null; if (G && !G.tool) ui(); } });
-cv.addEventListener('wheel', e => { e.preventDefault(); zoom(e.deltaY < 0 ? 1.12 : .89, e.clientX, e.clientY); }, { passive: false });
+cv.addEventListener('wheel', e => { e.preventDefault(); const dy = e.deltaY * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1); zoom(Math.max(.7, Math.min(1.4, Math.exp(-dy * .0012))), e.clientX, e.clientY); }, { passive: false });
 $('zoom-in').onclick = () => zoom(1.18, W / 2, H / 2);
 $('zoom-out').onclick = () => zoom(1 / 1.18, W / 2, H / 2);
 $('recenter').onclick = centerHall;
@@ -212,7 +222,7 @@ function startGame(g, isNew) {
   if (isNew) showIntro(); else pump();
 }
 function afterRelocate() {
-  sprites.clear(); groundCache = null; hideInspect(); traffic.splice(0); WALK.length = 0; FL = [];
+  chunkReset(); hideInspect(); traffic.splice(0); WALK.length = 0; FL = [];
   G.tool = null; G.era = Math.min(3, G.rank); paintTiles(); buildBar(); syncWalkers(); ox = 0; oy = 0; s = 1.05; layoutResize(); ox = 0; oy = 0; centerHall();
   for (let i = 0; i < 6; i++) updateTraffic(3.1); for (let i = 0; i < 120; i++) updateTraffic(.1);
   ui(); drawMini();
