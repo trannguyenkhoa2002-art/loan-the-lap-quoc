@@ -1,6 +1,6 @@
 // Giai đoạn 1 (hiệu năng): chọn vùng (chunk) theo khung nhìn, chữ ký thay đổi, và bản lưu không đổi.
 const path = require('path');
-for (const f of ['data', 'city', 'chunks', 'economy', 'game', 'battle', 'politics', 'war', 'events', 'world', 'wcities', 'campaign', 'trade', 'officials', 'automgmt']) require(path.join(__dirname, '..', 'js', f + '.js'));
+for (const f of ['data', 'city', 'chunks', 'economy', 'game', 'battle', 'politics', 'war', 'events', 'world', 'wcities', 'campaign', 'trade', 'officials', 'automgmt', 'power']) require(path.join(__dirname, '..', 'js', f + '.js'));
 const LT = globalThis.LT; let fails = 0;
 const ok = (c, m) => { if (!c) { fails++; console.log('  FAIL  ' + m); } else console.log('  ok    ' + m); };
 const N = LT.N, CH = LT.CH, GW = LT.chunkGrid(N), TW = 64, TH = 32;
@@ -66,7 +66,7 @@ console.log('--- 3. Bản lưu không đổi, đổi đồ họa không đụng 
   const G = LT.newGame(3, 'Lưu', 33); G.rank = 3; LT.grantCities(G, 3, 1, 2); G.res.tien = 5000;
   for (let i = 0; i < 120; i++) { LT.tickWeek(G); G.pendingEvent = null; G.pendingBattle = null; G.raid = null; G.pendingKhao = null; G.pendingPromo = null; G.pendingNotice = null; }
   const txt = LT.serialize(G), H = LT.deserialize(txt);
-  ok(JSON.parse(txt).ver === 8, 'Phiên bản lưu vẫn là 8 (không đổi định dạng)');
+  ok(JSON.parse(txt).ver === LT.SAVE_VER && LT.SAVE_VER === 9, 'Phiên bản lưu hiện tại là 9 (có bước chuyển 8 → 9)');
   const noEra = t => { const o = JSON.parse(t); delete o.era; return JSON.stringify(o); };   // era do giao diện đặt khi bắt đầu ván, không lưu
   ok(noEra(LT.serialize(H)) === noEra(txt), 'Lưu → tải → lưu lại cho đúng cùng một văn bản (' + Math.round(txt.length / 1024) + ' KB)');
   ok(!/gfx|perf|chunk|lt-gfx/i.test(txt), 'Bản lưu không chứa chế độ đồ họa/bộ đếm (nằm trong localStorage riêng)');

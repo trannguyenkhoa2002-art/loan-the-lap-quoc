@@ -258,7 +258,7 @@ function perfStats() {
 }
 function perfRender() {
   if (!PERF.el) { const d = document.createElement('div'); d.id = 'perf'; d.style.cssText = 'position:fixed;left:285px;top:76px;z-index:9;background:#000b;color:#cfe8c8;font:11px/1.45 Consolas,monospace;padding:6px 9px;border:1px solid #6a8a60;border-radius:4px;pointer-events:none;white-space:pre'; document.body.appendChild(d); PERF.el = d; }
-  PERF.el.style.display = PERF.on ? 'block' : 'none'; if (!PERF.on) return;
+  PERF.el.style.display = (PERF.on && !(typeof modalOpen === 'function' && modalOpen())) ? 'block' : 'none'; if (!PERF.on) return;
   const st = perfStats();
   PERF.el.textContent = 'FPS ' + PERF.fps.toFixed(0) + '  (rAF thật)\nKhung CPU: tb ' + PERF.avg.toFixed(1) + ' · p95 ' + PERF.p95.toFixed(1) + ' · xấu nhất ' + PERF.worst.toFixed(1) + ' ms\nVẽ: ' + PERF.lastDraw.toFixed(1) + ' ms · vẽ lại vùng: ' + CK.bakesFrame + ' (' + CK.bakeMs.toFixed(1) + ' ms), chờ ' + (CK.queued || 0) + '\nVùng: thấy ' + CK.vis.length + ' · đã có ảnh ' + st.baked + '/' + NCH + ' · bộ nhớ ' + (CK.bytes / 1048576).toFixed(0) + '/' + GFX.capMB + ' MB\nCông trình: ' + (G && G.bl ? G.bl.length : 0) + ' · đồ họa: ' + GFX_MODES[GFX.mode].n + ' · zoom ' + s.toFixed(2) + (ZM ? ' (đang zoom)' : '');
 }

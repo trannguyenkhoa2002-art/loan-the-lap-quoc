@@ -237,7 +237,9 @@ LT.campWeek = function (G) {
 LT.checkEndings = function (G) {
   if (G.over) return;
   const cs = G.world.cities, mine = LT.mineCount(G);
-  if (mine >= 90 && cs[G.world.capIds[0]].mine) {
+  if (mine >= 90 && cs[G.world.capIds[0]].mine && !LT.pw(G).ach.thongnhat) {
+    LT.achCheck(G);   // thống nhất giờ là một thành tựu (nhánh), ván vẫn chơi tiếp
+  } else if (false) {
     G.over = { win: true, title: 'Thống nhất thiên hạ', text: 'Bạn nắm ' + mine + ' trong 120 thành, gồm cả kinh đô Trung Nguyên ' + cs[G.world.capIds[0]].n + '. Mười hai nước chỉ còn là chuyện cũ — năm ' + G.year + ' bạn thống nhất thiên hạ.' };
   } else if (mine === 0) G.over = { win: false, title: 'Mất hết thành', text: 'Không còn thành nào dưới quyền bạn.' };
 };

@@ -295,7 +295,7 @@ function haThue(G) {
   remit(G, 'Hạ thuế');
 }
 function thuThue(G) {
-  const lv = LT.taxLevel(G), want = LT.THUE_THOC * G.yr.yield * lv.mult * (G.bocao.giamthue ? .75 : 1) * (G.bocao.chieudan ? .95 : 1), got = Math.min(want, G.dan.luong * .6);
+  const lv = LT.taxLevel(G), want = LT.THUE_THOC * G.yr.yield * lv.mult * (LT.pwTaxMul ? LT.pwTaxMul(G) : 1) * (G.bocao.giamthue ? .75 : 1) * (G.bocao.chieudan ? .95 : 1), got = Math.min(want, G.dan.luong * .6);
   addDan(G, -got, 'Dân nộp thóc'); add(G, 'luong', got, 'Thu thuế thóc (mức ' + lv.n + ')'); G.pend.luong += got; G.yr.thueThoc += got;
   LT.log(G, 'Thu thuế tháng 11: ' + Math.round(got) + ' thạch thóc (mức ' + lv.n + ').', 'good');
   taxFlee(G, lv);
@@ -303,14 +303,14 @@ function thuThue(G) {
 }
 // chia thuế ba phần: thượng cung + lưu sứ nộp lên, còn lại giữ
 function remit(G, what) {
-  const sp = LT.SPLIT[G.rank], rate = sp[0] + sp[1];
+  const sp = LT.SPLIT[G.rank], rate = (sp[0] + sp[1]) * (LT.pwRemitMul ? LT.pwRemitMul(G) : 1);
   const pol = G.pol.nop, k = pol === 'du' ? 1 : pol === 'thieu' ? .5 : 0;
   const dueT = G.pend.tien * rate, dueL = G.pend.luong * rate;
   const payT = take(G, 'tien', dueT * k, 'Nộp thượng cung + lưu sứ (' + Math.round(rate * 100) + '%)');
   const payL = take(G, 'luong', dueL * k, 'Nộp thượng cung + lưu sứ (thóc)');
   G.yr.remitT += payT; G.yr.remitL += payL; G.yr.dueT += dueT; G.yr.dueL += dueL;
   const short = (dueT * k - payT) + (dueL * k - payL) * .4;
-  if (k < 1) { G.nghiky = Math.min(100, G.nghiky + (k === 0 ? 14 : 7)); LT.log(G, 'Bạn cố ý nộp thiếu cho bề trên: triều đình bắt đầu nghi kỵ.', 'bad'); }
+  if (k < 1) { G.nghiky = Math.min(100, G.nghiky + (k === 0 ? 14 : 7) * (LT.pwNghiMul ? LT.pwNghiMul(G) : 1)); LT.log(G, 'Bạn cố ý nộp thiếu cho bề trên: triều đình bắt đầu nghi kỵ.', 'bad'); }
   else if (short > 3) { G.nghiky = Math.min(100, G.nghiky + 5); LT.log(G, 'Kho không đủ để nộp đủ thượng cung và lưu sứ (' + Math.round(short) + ' quan thiếu) — bề trên nghi ngờ.', 'bad'); }
   G.wealth += 0; // tiền nộp lên rời khỏi thành (KT §9)
   LT.log(G, what + ': nộp ' + Math.round(payT) + ' quan + ' + Math.round(payL) + ' thạch (thượng cung ' + Math.round(sp[0] * 100) + '%, lưu sứ ' + Math.round(sp[1] * 100) + '%).', '');

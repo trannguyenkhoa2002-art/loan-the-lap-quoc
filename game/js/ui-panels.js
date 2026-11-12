@@ -17,9 +17,9 @@ function openCourt(tab) { G.flags.seenCourt = true; UI.panel = 'court'; UI.tab.c
 ACT.openCourtQuanlo = () => openCourt('quanlo');
 ACT.courtTab = el => { UI.tab.court = el.dataset.t; renderCourt(); };
 function renderCourt(first) {
-  const t = UI.tab.court, tabs = [['dan', '👥 Dân & tầng lớp'], ['thue', '💰 Thuế & chính sách'], ['quanlo', '🎖️ Quan lộ'], ['bocao', '📜 Bố cáo']];
+  const t = UI.tab.court, tabs = [['dan', '👥 Dân & tầng lớp'], ['thue', '💰 Thuế & chính sách'], ['quanlo', '🎖️ Quan lộ'], ['luc', '⚖️ Thế lực'], ['phe', '🏛️ Phe phái'], ['tuu', '🏅 Thành tựu'], ['bocao', '📜 Bố cáo']];
   let body = '';
-  if (t === 'dan') body = courtDan(); else if (t === 'thue') body = courtThue(); else if (t === 'quanlo') body = courtQuanlo(); else body = courtBocao();
+  if (t === 'dan') body = courtDan(); else if (t === 'thue') body = courtThue(); else if (t === 'quanlo') body = courtQuanlo(); else if (t === 'luc') body = courtLuc(); else if (t === 'phe') body = courtPhe(); else if (t === 'tuu') body = courtTuu(); else body = courtBocao();
   const html = shell('📜 Triều chính — ' + LT.RANKS[G.rank].n, tabs, t, 'courtTab', body);
   if (first || !modalOpen() || UI.panel !== 'court') openModal(html, 'wide'); else setModal(html);
 }

@@ -32,6 +32,7 @@ LT.khaoScores = function (G) {
 LT.gradeOf = t => t >= 80 ? { id: 'thuong', n: 'Hạng Thượng' } : t >= 60 ? { id: 'trung', n: 'Hạng Trung' } : t >= 40 ? { id: 'ha', n: 'Hạng Hạ' } : { id: 'phat', n: 'Dưới 40 — bị giáng' };
 
 LT.khaoKhoa = function (G) {
+  if (LT.pwNoKhao && LT.pwNoKhao(G)) { LT.log(G, 'Bạn đã cát cứ: không còn nộp sổ sách cho triều đình chấm khảo khóa năm nay.', ''); return; }
   const r = LT.khaoScores(G), gr = LT.gradeOf(r.total), eff = [];
   const P = G.player, K = G.khao;
   const rec = { year: G.year, scores: r.s, total: r.total, grade: gr.n, gid: gr.id, eff, details: { growth: r.growth, paid: r.paid, quota: G.yr.quota, weeks: LT.foodWeeks(G), khoWeeks: wkOf(G), pts: r.pts, scale: r.scale }, rank: G.rank };
@@ -52,7 +53,7 @@ LT.khaoKhoa = function (G) {
   if (LT.count(G, 'school') > 0) { P.thanhdanh = clamp(P.thanhdanh + 1, 0, 100); eff.push('Châu học: Thanh danh +1'); }
   if (G.stat.dantam >= 70) { P.thanhdanh = clamp(P.thanhdanh + 1, 0, 100); eff.push('Dân tâm cao: Thanh danh +1'); }
   if (G.stat.dantam < 25) { P.thanhdanh = clamp(P.thanhdanh - 3, 0, 100); eff.push('Dân oán: Thanh danh −3'); }
-  if (G.nghiky >= 85 && !G.over) { G.over = { win: false, title: 'Bị triệu về kinh', text: 'Triều đình nghi kỵ bạn quá lâu. Một đạo chiếu triệu bạn về kinh rồi tước chức, không bao giờ trở lại.' }; }
+  if (G.nghiky >= 85 && !G.over && !(LT.pwNoKhao && LT.pwNoKhao(G))) {   G.over = { win: false, title: 'Bị triệu về kinh', text: 'Triều đình nghi kỵ bạn quá lâu. Một đạo chiếu triệu bạn về kinh rồi tước chức, không bao giờ trở lại.' }; }
   K.history.push(rec); K.last = rec;
   LT.log(G, 'KHẢO KHÓA năm ' + G.year + ': ' + r.total + ' điểm — ' + gr.n + '.', gr.id === 'thuong' ? 'good' : gr.id === 'phat' ? 'bad' : '');
   G.pendingKhao = rec;   // giao diện hiện bảng điểm
@@ -200,6 +201,7 @@ function bocaoWeek(G) {
 // ---- nhịp tuần của quan lộ -----------------------------------------------------------------
 LT.politicsWeek = function (G) {
   bocaoWeek(G);
+  if (LT.pwWeek) LT.pwWeek(G);       // giai đoạn 3: ba thước đo, phe phái, thành tựu (theo quý)
   if (G.week === LT.KHAO_WEEK) LT.khaoKhoa(G);
   if (G.week === 1 && G.rank >= 5 && G.pol.coin && G.pol.coin !== 'none') LT.mint(G);
   if (G.week === 1 && G.rank >= 2 && G.stat.dantam > 70) G.chinhdanh = clamp(G.chinhdanh + 1, 0, 100);

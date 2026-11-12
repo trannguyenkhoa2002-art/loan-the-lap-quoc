@@ -2,7 +2,7 @@
 // Chỉ đọc đáp án Tỉnh thí (người chơi cũng học được). In ra bậc đạt được theo năm, và kẹt ở đâu.
 // Chạy: node tests/bot.test.js [số năm tối đa=45] [nước=7] [hạt giống=77]
 const path = require('path');
-for (const f of ['data', 'city', 'economy', 'game', 'battle', 'politics', 'war', 'events', 'world', 'wcities', 'campaign', 'trade', 'officials', 'automgmt']) require(path.join(__dirname, '..', 'js', f + '.js'));
+for (const f of ['data', 'city', 'economy', 'game', 'battle', 'politics', 'war', 'events', 'world', 'wcities', 'campaign', 'trade', 'officials', 'automgmt', 'power']) require(path.join(__dirname, '..', 'js', f + '.js'));
 const LT = globalThis.LT;
 const MAXY = +process.argv[2] || 45, NAT = process.argv[3] != null ? +process.argv[3] : 7, SEED = +process.argv[4] || 77;
 const G = LT.newGame(NAT, 'Bot', SEED);

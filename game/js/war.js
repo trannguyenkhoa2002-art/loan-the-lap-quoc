@@ -194,6 +194,7 @@ LT.openBattle = function (G, kind, o) {
   if (kind === 'tieuphi') { title = 'Tiễu trừ sơn trại'; text = 'Thám báo phát hiện một sơn trại ~' + total + ' tên. Đánh dẹp được sẽ có quân công và chiến lợi phẩm; thua thì tổn hại uy vọng.'; terrain = LT.pick(G, ['rung', 'doi', 'dongbang']); if (terrain === 'doi') holder = 'B'; canFlee = true; canHold = false; }
   if (kind === 'loan') { title = 'Dân nổi loạn!'; text = 'Dân tâm tụt quá thấp, ' + total + ' hộ nổi dậy cầm gậy gộc kéo vào phủ. Đánh dẹp thì thành yên nhưng dân oán; hoặc ban ơn (giảm thuế, mở kho) để dân tản đi.'; ransom = 0; }
   if (kind === 'nation') { title = 'Quân ' + eName + ' xâm lấn!'; text = 'Nước láng giềng xuất ' + total + ' quân đánh vào huyện thành. Thua trận mà thành phòng thấp, thành sẽ thất thủ.'; ransom = Math.round(total * 2.5); }
+  if (o.title) title = o.title; if (o.text) text = o.text;
   const eSide = LT.aiSide(eName, comp, chief, { wall: 0, camcu: false });
   eSide.form = kind === 'nation' ? 'phuong' : LT.pick(G, ['phuong', 'phongthi', 'hacduc', 'nhanhanh', 'phuong']);
   LT.ensureFormation(G);

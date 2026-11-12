@@ -5,8 +5,12 @@
 (function (g) {
 const LT = g.LT = g.LT || {};
 // bản lưu từ phiên bản SAVE_MIN trở lên luôn tải được: LT.SAVE_MIGRATE[v] chuyển v -> v+1 (điền mặc định, không mất dữ liệu). Bản < SAVE_MIN (lưới cũ) vẫn bị từ chối.
-LT.SAVE_MIN = 8; LT.SAVE_MIGRATE = {};
-const SAVE_KEY = 'loan-the-lap-quoc-v2', SAVE_KEY_OLD = 'loan-the-lap-quoc-v1', SAVE_VER = 8;
+LT.SAVE_MIN = 8; LT.SAVE_VER = 9;
+LT.SAVE_MIGRATE = {
+  // 8 -> 9: thêm sổ thế lực (pw): triều đình, phe phái, danh nghĩa, thành tựu — mọi thứ ở mặc định, chức/đất/quân người chơi giữ nguyên
+  8: o => { if (!o.pw && LT.pwDefault) o.pw = LT.pwDefault(o.nation, o.seed || 7); },
+};
+const SAVE_KEY = 'loan-the-lap-quoc-v2', SAVE_KEY_OLD = 'loan-the-lap-quoc-v1', SAVE_VER = 9;
 
 LT.newYearLedger = () => ({ rev: 0, exp: 0, yield: 0, leave: 0, arrive: 0, thueTien: 0, thueThoc: 0, cho: 0, mono: 0, remitT: 0, remitL: 0, dueT: 0, dueL: 0, quota: 0, hoStart: 0, tbtMua: 0, tbtBan: 0, dtTBT: 0, unpaid: 0 });
 
@@ -94,7 +98,7 @@ LT.rollYear = function (G) {
   G.lab.used = 0; G.lab.hired = 0; G.lab.over = 0; G.lab.budget = LT.laoDichBudget(G);
   G.weather = { mul: 1, kind: '' };
   LT.computeQuota(G);
-  if (G.year > 979 && !G.over) G.over = LT.finalEnding(G);
+  if (G.year > 979 && !G.over && !G.flags.finalNote) { G.flags.finalNote = 1; const e = LT.finalEnding(G); LT.log(G, 'Tổng kết năm 979: ' + e.title + ' — ' + e.text, 'good'); if (!G.pendingNotice) { G.pendingNotice = { title: 'Năm 979 — ' + e.title, text: e.text + ' Ván không kết thúc: bạn vẫn chơi tiếp, các thành tựu đã đạt nằm ở Triều chính → Thành tựu.' }; G.speed = 0; } }
 };
 
 // ---- lưu / tải: địa hình sinh lại từ hạt giống; chỉ lưu công trình và trạng thái -------------

@@ -132,16 +132,25 @@ function nextDeadline() {
   return 'Xuân canh sau ' + (LT.WEEKS_YEAR + 1 - w) + ' tuần';
 }
 function updateGoal() {
-  const pr = LT.promotion(G); let h = '<div class="kick">Mục tiêu</div>';
+  const pr = LT.promotion(G); let h = '<div class="kick">' + (G.rank <= 1 ? 'Mục tiêu' : 'Hướng đang mở') + '</div>';
   if (G.over) h += '<h3>Ván đã kết thúc</h3>';
-  else if (pr) {
-    h += '<h3>🎯 Thăng ' + pr.name + (G.rank >= 4 ? ' · ' + LT.mineCount(G) + '/90 thành để thống nhất' : '') + '</h3><ul>';
+  else if (G.rank <= 1 && pr) {   // bước đầu: vẫn chỉ đường lên Thứ sử, phần còn lại mở dần
+    h += '<h3>🎯 Thăng ' + pr.name + '</h3><ul>';
     for (const c of pr.conds) h += '<li class="' + (c.ok ? 'ok' : '') + '">' + (c.ok ? '✅' : '⬜') + ' ' + esc(c.t) + '</li>';
     h += '</ul>';
-    if (pr.ready) h += '<button class="btn" data-act="goPromo">Đủ điều kiện — ' + (G.rank >= 4 ? 'chọn con đường' : 'xin thăng chức') + '</button>';
+    if (pr.ready) h += '<button class="btn" data-act="goPromo">Đủ điều kiện — xin thăng chức</button>';
     else if (pr.needExam) h += '<button class="btn" data-act="goExam">Dự kỳ Tỉnh thí</button>';
     else h += '<button class="btn2" style="width:100%;margin-top:6px" data-act="openCourtQuanlo">Xem chi tiết quan lộ</button>';
-  } else h += '<h3>👑 Hoàng đế — thống nhất thiên hạ</h3><ul><li class="' + (LT.mineCount(G) >= 90 ? 'ok' : '') + '">' + (LT.mineCount(G) >= 90 ? '✅' : '⬜') + ' Giữ 90 / 120 thành (hiện ' + LT.mineCount(G) + ')</li><li class="' + (G.world.cities[G.world.capIds[0]].mine ? 'ok' : '') + '">' + (G.world.cities[G.world.capIds[0]].mine ? '✅' : '⬜') + ' Có kinh đô Trung Nguyên ' + esc(G.world.cities[G.world.capIds[0]].n) + '</li><li>Năm ' + G.year + '/979</li></ul>';
+  } else {
+    const P = LT.pw(G), sc = LT.pwScores(G), got = Object.keys(P.ach).length, tot = Object.keys(LT.ACH).length;
+    h += [['van', '📜 Văn trị'], ['chinh', '🎭 Chính trị'], ['quan', '⚔️ Quân sự – Cát cứ']].map(([k, n]) => '<div class="flowrow" style="padding:1px 0"><span>' + n + '</span><b>' + sc[k].v + '</b></div>' + bar(sc[k].v, 100, sc[k].v >= 60 ? 'g' : sc[k].v >= 35 ? 'y' : 'r')).join('');
+    let near = null; for (const id in LT.ACH) if (!P.ach[id] && id !== 'hoangde' && id !== 'thongnhat') { const p = LT.ACH[id].prog(G); if (!near || p.v > near.p.v) near = { id, p }; }
+    h += '<div class="hint" style="margin-top:4px">🏅 Thành tựu ' + got + '/' + tot + (near ? ' · gần nhất: <b>' + esc(LT.ACH[near.id].n) + '</b> (' + esc(near.p.t) + ')' : '') + '</div>';
+    if (pr) h += '<div class="hint">🎖️ Nhánh quan lộ → ' + pr.name + ': ' + pr.conds.filter(c => c.ok).length + '/' + pr.conds.length + ' điều kiện' + (G.rank >= 4 ? ' · ' + LT.mineCount(G) + ' thành' : '') + '</div>';
+    else h += '<div class="hint">👑 Đã là Hoàng đế · ' + LT.mineCount(G) + ' thành</div>';
+    if (pr && pr.ready) h += '<button class="btn" data-act="goPromo">Có thể ' + (G.rank >= 4 ? 'chọn con đường lên ' + pr.name : 'thăng ' + pr.name) + '</button>';
+    h += '<div style="display:flex;gap:4px;margin-top:5px"><button class="btn2" style="flex:1" data-act="openCourtLuc">⚖️ Thế lực</button><button class="btn2" style="flex:1" data-act="openCourtQuanlo">🎖️ Quan lộ</button><button class="btn2" style="flex:1" data-act="openCourtTuu">🏅</button></div>';
+  }
   h += '<div class="kick" style="margin:6px 0 0">⏳ Sắp tới: ' + nextDeadline() + '</div>';
   $('goal').innerHTML = h; bindActs($('goal'));
 }

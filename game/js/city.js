@@ -94,7 +94,7 @@ LT.canPlace = function (G, k, x, y, free) {
   return '';
 };
 
-LT.laoDichBudget = G => Math.round((G.H ? LT.totalHo(G) : 100) * LT.LAO_DICH_TUAN_HO);
+LT.laoDichBudget = G => Math.round((G.H ? LT.totalHo(G) : 100) * LT.LAO_DICH_TUAN_HO * (LT.pwLaoMul ? LT.pwLaoMul(G) : 1));
 
 LT.place = function (G, k, x, y, opt) {
   opt = opt || {};

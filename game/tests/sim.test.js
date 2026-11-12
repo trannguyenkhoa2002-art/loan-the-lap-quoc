@@ -1,7 +1,7 @@
 // Mô phỏng không đầu: kinh tế một năm, năm năm bỏ mặc / chơi hợp lý, khảo khóa, lưu–tải.
 // Chạy: node tests/sim.test.js
 const path = require('path');
-for (const f of ['data', 'city', 'economy', 'game', 'battle', 'politics', 'war', 'events', 'world', 'wcities', 'campaign', 'trade', 'officials', 'automgmt']) require(path.join(__dirname, '..', 'js', f + '.js'));
+for (const f of ['data', 'city', 'economy', 'game', 'battle', 'politics', 'war', 'events', 'world', 'wcities', 'campaign', 'trade', 'officials', 'automgmt', 'power']) require(path.join(__dirname, '..', 'js', f + '.js'));
 const LT = globalThis.LT;
 const O = 24;   // phủ ở (46,46) thay vì (22,22)
 let fails = 0;
