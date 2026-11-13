@@ -37,6 +37,62 @@
     s = s0; ox = ox0; oy = oy0; return 'sheet ' + kinds.join(',');
   };
   window.__sheetOff = () => { const c = document.getElementById('sheet'); if (c) c.remove(); };
+  // thành dày ~n công trình + đường lưới (giống tests/_dense.js)
+  window.__denseSetup = function (n) {
+    const g = LT.newGame(3, 'Dày', 77); g.rank = 4; g.res.go = g.res.da = g.res.tien = 1e7; g.res.luong = 1e6;
+    startGame(g, true); const st = document.getElementById('start'); if (st) st.style.display = 'none'; closeModal(); UI.overShown = false; perfSet(false);
+    const hx = G.hx, hy = G.hy, kinds = ['house', 'house', 'house', 'market', 'granary', 'well', 'watch', 'temple', 'school', 'terrace', 'clinic', 'barracks', 'tower', 'wall', 'farm', 'house', 'mansion', 'gate'], R = 22; let ki = 0, placed = 0;
+    for (let y = hy - R; y <= hy + R; y++) for (let x = hx - R; x <= hx + R; x++) { if (x < 1 || y < 1 || x >= N - 1 || y >= N - 1) continue; if ((x - hx) % 5 === 0 || (y - hy) % 5 === 0) { if (LT.place(G, 'road', x, y, { free: true, instant: true }).ok) placed++; } }
+    for (let y = hy - R; y <= hy + R && placed < n; y++) for (let x = hx - R; x <= hx + R && placed < n; x++) { if (x < 1 || y < 1) continue; if (LT.place(G, kinds[ki++ % kinds.length], x, y, { free: true, instant: true }).ok) placed++; }
+    for (const b of G.bl) if (b.building) { b.progress = 1; b.building = false; b.born = -9; }
+    LT.recalcCity(G); WALK.length = 0; traffic.length = 0; G.raid = null; G.speed = 0; view(1.7, hx + 3, hy + 3); return G.bl.length;
+  };
+  // kiểm thứ tự che: mỗi ca đặt MỘT người đứng yên ở ô trống/đường, so điểm ảnh thật với "đáp án" dựng từ mặt nạ riêng của người và từng công trình đứng trước.
+  window.__occTest = async function (count, sc, seed, pts, centre) {
+    const anim0 = GFX.anim, ms0 = GFX.animMs; GFX.anim = 0; GFX.animMs = 0; T = 5;   // tắt hoạt hoạ để ảnh nền không đổi giữa các lần chụp
+    view(sc, centre ? centre[0] : G.hx + 3, centre ? centre[1] : G.hy + 3); WALK.length = 0; traffic.length = 0; G.raid = null; G.speed = 0;
+    for (let i = 0, calm = 0; i < 1200 && calm < 12; i++) { draw(); calm = (CK.bakesFrame === 0 && !JOB && CK.q.length === 0 && CK.vis.every(i => { const c = CK.L[i]; return c && (!c.o || c.o.empty || Math.abs(c.o.s - quantS(s)) < 1e-6); })) ? calm + 1 : 0; if (i % 30 === 29) await new Promise(r => setTimeout(r, 0)); }
+    draw(); const base = MAINCTX.getImageData(0, 0, cv.width, cv.height), CW = cv.width;
+    const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+    const rule = (fx, fy, x, y, w, d) => fx < x + w && fy < y + d && (fx < x || fy < y), cases = [];
+    let rs = (seed || 1) * 9301 + 49297; const rn = () => { rs = (rs * 9301 + 49297) % 233280; return rs / 233280; };
+    let tries = 0;
+    const forced = pts ? pts.slice() : null;
+    while ((forced ? forced.length : cases.length < count) && tries++ < count * 40 + 40) {
+      const fp = forced ? forced.shift() : null, tx = fp ? Math.floor(fp[0]) : G.hx - 18 + Math.floor(rn() * 40), ty = fp ? Math.floor(fp[1]) : G.hy - 18 + Math.floor(rn() * 40), q = tile(tx, ty); if (!fp && (!q || (q.b && !isRoad(q.b)) || (q.t !== 'g' && !isRoad(q.b)))) continue;
+      let ok = true; if (!fp) for (let j = -1; j <= 4 && ok; j++) for (let i = -1; i <= 4; i++) { const u = tile(tx + i, ty + j); if (u && (u.t === 'f' || u.t === 'r' || u.t === 'm' || (u.t === 'h' && !u.b))) { ok = false; break; } } if (!ok) continue;
+      const fx = fp ? fp[0] : tx + .3 + rn() * .4, fy = fp ? fp[1] : ty + .3 + rn() * .4, p = P(fx, fy);
+      if (!fp && (p.x < 330 || p.x > W - 330 || p.y < 160 || p.y > H - 120)) continue;
+      const rx = Math.floor((p.x - 26 * sc) * DPR), ry = Math.floor((p.y - 64 * sc) * DPR), rw = Math.ceil(52 * sc * DPR), rh = Math.ceil(70 * sc * DPR);
+      // đáp án
+      const ca = mk(rw, rh), xa = ca.getContext('2d'); xa.setTransform(DPR, 0, 0, DPR, -rx, -ry);
+      WALK.length = 0; WALK.push({ cls: 'nong', x: fx, y: fy, ph: 0 }); const w0 = WALK[0]; w0.fk = 'nong'; w0.fv = 1; w0._c = 'nong';
+      FIGS.draw('nong', 1, fx, fy, 1, 0, 0, false, xa); const ma = xa.getImageData(0, 0, rw, rh).data;
+      const mb = new Uint8Array(rw * rh); let nOcc = 0, kinds = null;
+      for (const b of G.bl) { if (b.building || isRoad(b) || b.k === 'gate') continue; const bw = b.w || 1, bd = b.h || 1; if (!rule(fx, fy, b.x, b.y, bw, bd)) continue; if (b.x - fx > 9 || b.y - fy > 9) continue;
+        const cb = mk(rw, rh), xb = cb.getContext('2d'); xb.setTransform(DPR, 0, 0, DPR, -rx, -ry);
+        const sc0 = ctx, sG = GLOW, sZ = ZM; ctx = xb; GLOW = []; ZM = false; try { if (b.k === 'hall') drawHall(); else drawB(b); } finally { ctx = sc0; GLOW = sG; ZM = sZ; }
+        const d = xb.getImageData(0, 0, rw, rh).data; let ov = 0; for (let i = 0; i < rw * rh; i++) if (d[i * 4 + 3] > 40) { if (!mb[i]) nOcc++; mb[i] = 1; if (ma[i * 4 + 3] >= 140) ov++; } if (ov > 3) (kinds = kinds || []).push(b.k + '@' + b.x + ',' + b.y + ' ' + bw + 'x' + bd); }
+      draw(); const ob = MAINCTX.getImageData(rx, ry, rw, rh).data; let tot = 0, bad = 0, exHide = 0;
+      for (let j = 0; j < rh; j++) for (let i = 0; i < rw; i++) { const k = j * rw + i; if (ma[k * 4 + 3] < 140) continue; tot++; const bi = ((ry + j) * CW + rx + i) * 4, diff = Math.abs(ob[k * 4] - base.data[bi]) + Math.abs(ob[k * 4 + 1] - base.data[bi + 1]) + Math.abs(ob[k * 4 + 2] - base.data[bi + 2]); const shown = diff > 14, expect = !mb[k]; if (!expect) exHide++; if (shown !== expect) bad++; }
+      if (tot > 30) cases.push({ tx, ty, tot, bad, exHide, kinds, fx: +fx.toFixed(2), fy: +fy.toFixed(2) });
+    }
+    GFX.anim = anim0; GFX.animMs = ms0; WALK.length = 0; const n = cases.length, withOcc = cases.filter(c => c.exHide > 4), badc = cases.filter(c => c.bad / c.tot > .06), badOcc = withOcc.filter(c => c.bad / c.tot > .06);
+    return { cases: n, mismatchPx: +(cases.reduce((a, c) => a + c.bad, 0) / Math.max(1, cases.reduce((a, c) => a + c.tot, 0)) * 100).toFixed(2), casesWithOcclusion: withOcc.length, casesWrong: badc.length, wrongWhenOccluded: badOcc.length, wrongWhenFree: badc.length - badOcc.length, list: badc.slice(0, 10) };
+  };
+  // đặt 6 người đứng yên quanh một công trình loại k (sau, trái-sau, trước, phải, chéo trước, chéo sau) để chụp ảnh kiểm thứ tự che
+  window.__around = function (k, sc, nth) {
+    const list = G.bl.filter(b => b.k === k && !b.building).sort((a, b) => Math.hypot(a.x - G.hx - 6, a.y - G.hy - 6) - Math.hypot(b.x - G.hx - 6, b.y - G.hy - 6)); const b = list[nth || 0]; if (!b) return 'không có ' + k;
+    const w = b.w || 1, d = b.h || 1, pts = [[b.x + w / 2, b.y - .45, 'nong'], [b.x - .45, b.y + d / 2, 'quan'], [b.x + w / 2, b.y + d + .45, 'binh'], [b.x + w + .45, b.y + d / 2, 'thuong'], [b.x + w + .45, b.y + d + .45, 'si'], [b.x - .45, b.y - .45, 'tang']];
+    WALK.length = 0; traffic.length = 0; G.raid = null; G.speed = 0; pts.forEach(([x, y, c], i) => WALK.push({ cls: c, x, y, ph: i, tx: x, ty: y })); view(sc, b.x + w / 2, b.y + d / 2); return k + ' ở (' + b.x + ',' + b.y + ') ' + w + 'x' + d;
+  };
+  window.__settle = async function () { for (let i = 0, calm = 0; i < 1200 && calm < 12; i++) { draw(); calm = (CK.bakesFrame === 0 && !JOB && CK.q.length === 0 && CK.vis.every(i => { const c = CK.L[i]; return c && (!c.o || c.o.empty || Math.abs(c.o.s - quantS(s)) < 1e-6); })) ? calm + 1 : 0; if (i % 30 === 29) await new Promise(r => setTimeout(r, 0)); } return 'settled'; };
+  // đặt một công trình loại k riêng lẻ trên bãi cỏ trống (9×9) để kiểm thứ tự che quanh công trình cao; trả về [x,y]
+  window.__isolated = function (k) {
+    for (let r = 14; r < 50; r++) for (let a = 0; a < 40; a++) { const x = Math.round(G.hx + 1 + Math.cos(a / 40 * 6.283 + r) * r), y = Math.round(G.hy + 1 + Math.sin(a / 40 * 6.283 + r) * r); let ok = x > 6 && y > 6 && x < N - 6 && y < N - 6; for (let j = -4; ok && j <= 4; j++) for (let i = -4; i <= 4; i++) { const q = tile(x + i, y + j); if (!q || q.b || q.t !== 'g') { ok = false; break; } }
+      if (ok) { const rr = LT.place(G, k, x, y, { free: true, instant: true }); if (rr.ok) { rr.b.building = false; LT.recalcCity(G); return [x, y]; } } }
+    return null;
+  };
   window.__crowdBench = async function (op, frames) {
     frames = frames || 90; const t = []; G.speed = 2; const cx = G.hx + 6, cy = G.hy + 6; view(op === 'zoom' ? 1.0 : 1.2, cx, cy);
     for (let i = 0; i < 20; i++) { draw(); flush(); }

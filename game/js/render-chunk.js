@@ -30,7 +30,7 @@ function setGfxMode(m, user) {
 // ---- kho ảnh đệm ----
 const CK = { G: null, map: null, st: LT.newChunkState(N), L: new Array(NCH).fill(null), bytes: 0, vis: [], pre: [], isVis: new Uint8Array(NCH), isPre: new Uint8Array(NCH), q: [], bakeMs: 0, bakesFrame: 0, bakesTotal: 0, evicted: 0, dyn: [] };
 for (let i = 0; i < NCH; i++) CK.dyn.push([]);
-function freeLayer(l) { if (!l || !l.c) return; CK.bytes -= l.bytes; l.c.width = 0; l.c.height = 0; l.c = null; }
+function freeLayer(l) { if (l && l.objs) freeObjs(l); if (!l || !l.c) return; CK.bytes -= l.bytes; l.c.width = 0; l.c.height = 0; l.c = null; }
 function chunkReset() { if (typeof abortJob === 'function') abortJob(); while (typeof POOL !== 'undefined' && POOL.length) { const c = POOL.pop(); CK.bytes -= c.width * c.height * 4; c.width = 0; c.height = 0; } for (let i = 0; i < NCH; i++) { const c = CK.L[i]; if (c) { freeLayer(c.g); freeLayer(c.o); } CK.L[i] = null; } CK.bytes = 0; }
 const QL = [.3, .4, .5, .65, .8, 1, 1.3, 1.7, 2.2, 2.6];
 const quantS = v => { let b = QL[0], bd = 1e9; for (const l of QL) { const d = Math.abs(Math.log(v / l)); if (d < bd) { bd = d; b = l; } } return b; };
@@ -61,12 +61,12 @@ function objectItems(cx, cy) {
   const x0 = cx * CHK, y0 = cy * CHK, x1 = Math.min(N, x0 + CHK), y1 = Math.min(N, y0 + CHK), st = CK.st, L = [];
   for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
     const q = G.map[y * N + x]; if (q.t === 'g' || q.t === 'w') continue;
-    if (q.t === 'f') L.push({ x, y, e: EXT.tree, k: x + y + 1, f: () => { if (s < .5) { const p = P(x + .5, y + .5); dot({ x: p.x, y: p.y - 6 * s }, 9 * s * (.8 + q.v * .4), q.v > .5 ? '#4f8a4a' : '#3c6a45'); } else tree(x, y, q.v); } });
-    else if (q.t === 'r') L.push({ x, y, e: EXT.rock, k: x + y + 1, f: () => { if (s < .5) { const p = P(x + .5, y + .5); dot({ x: p.x, y: p.y - 3 * s }, 8 * s, '#9a9d9a'); } else rock(x, y, q.v); } });
-    else if (q.t === 'm') L.push({ x, y, e: EXT.rock, k: x + y + 1, f: () => ore(x, y, q.v) });
-    else if (q.t === 'h' && !q.b) L.push({ x, y, e: EXT.mound, k: x + y + .6, f: () => mound(x, y, q.v) });
+    if (q.t === 'f') L.push({ x, y, w: 1, d: 1, e: EXT.tree, k: x + y + 1, f: () => { if (s < .5) { const p = P(x + .5, y + .5); dot({ x: p.x, y: p.y - 6 * s }, 9 * s * (.8 + q.v * .4), q.v > .5 ? '#4f8a4a' : '#3c6a45'); } else tree(x, y, q.v); } });
+    else if (q.t === 'r') L.push({ x, y, w: 1, d: 1, e: EXT.rock, k: x + y + 1, f: () => { if (s < .5) { const p = P(x + .5, y + .5); dot({ x: p.x, y: p.y - 3 * s }, 8 * s, '#9a9d9a'); } else rock(x, y, q.v); } });
+    else if (q.t === 'm') L.push({ x, y, w: 1, d: 1, e: EXT.rock, k: x + y + 1, f: () => ore(x, y, q.v) });
+    else if (q.t === 'h' && !q.b) L.push({ x, y, w: 1, d: 1, e: EXT.mound, k: x + y + .6, f: () => mound(x, y, q.v) });
   }
-  for (const b of st.stat[cy * CGW + cx]) if (b.k !== 'hall') L.push({ x: b.x, y: b.y, e: EXT[EXTK[b.k] || 'default'], k: b.x + b.y + 1, f: () => drawStaticB(b) });
+  for (const b of st.stat[cy * CGW + cx]) if (b.k !== 'hall') L.push({ x: b.x, y: b.y, w: b.w || 1, d: b.h || 1, e: EXT[EXTK[b.k] || 'default'], k: b.x + b.y + 1, f: () => drawStaticB(b) });
   L.sort((p, q) => p.k - q.k); return L;
 }
 // ---- việc vẽ lại chia nhỏ qua nhiều khung (mỗi khung một ngân sách thời gian), ảnh cũ vẫn hiển thị tới khi xong ----
@@ -78,17 +78,17 @@ function takeCanvas(pw, ph) {
 function recycle(c) { if (!c) return; if (POOL.length < 3) POOL.push(c); else { CK.bytes -= c.width * c.height * 4; c.width = 0; c.height = 0; } }
 function startJob(idx, kind, S, sig) {
   const cx = idx % CGW, cy = (idx / CGW) | 0, gm = geom(kind, S), pr = bakePr(), x0 = cx * CHK, y0 = cy * CHK;
-  let items, gm2 = gm;
+  let items, gm2 = gm, objsOut = null;
   if (kind === 'g') items = groundItems(cx, cy);
   else {
-    const Lo = objectItems(cx, cy); items = Lo.map(o => o.f);
+    const Lo = objectItems(cx, cy); items = Lo.map(o => o.f); objsOut = Lo;
     if (Lo.length) {
       let mnx = 1e9, mxx = -1e9, mny = 1e9, mxy = -1e9;
       for (const o of Lo) { const ax = ((o.x - x0) - (o.y - y0)) * 32 * S, ay = ((o.x - x0) + (o.y - y0)) * 16 * S, e = o.e; mnx = Math.min(mnx, ax - e[0] * S); mxx = Math.max(mxx, ax + e[0] * S); mny = Math.min(mny, ay - e[1] * S); mxy = Math.max(mxy, ay + e[2] * S + 8 * S); }
       mnx = Math.floor(mnx - 2); mny = Math.floor(mny - 2); gm2 = { w: Math.ceil(mxx - mnx + 2), h: Math.ceil(mxy - mny + 2), oX: -mnx, oY: -mny };
     }
   }
-  const j0 = gm2; const j = { idx, kind, S, sig, gm: gm2, pr, pw: 0, ph: 0, items, i: 0, gl: [], ox: gm2.oX - (x0 - y0) * 32 * S, oy: gm2.oY - (x0 + y0) * 16 * S, c: null, o: null, empty: !items.length };
+  const j0 = gm2; const j = { idx, kind, S, sig, gm: gm2, pr, pw: 0, ph: 0, items, i: 0, gl: [], ox: gm2.oX - (x0 - y0) * 32 * S, oy: gm2.oY - (x0 + y0) * 16 * S, c: null, o: null, empty: !items.length, objs: objsOut };
   j.pw = Math.ceil(gm2.w * pr); j.ph = Math.ceil(gm2.h * pr);
   if (!j.empty) { j.c = takeCanvas(j.pw, j.ph); j.o = j.c.getContext('2d'); j.o.setTransform(1, 0, 0, 1, 0, 0); j.o.clearRect(0, 0, j.c.width, j.c.height); j.o.setTransform(pr, 0, 0, pr, 0, 0); }
   JOB = j; return j;
@@ -97,8 +97,8 @@ function abortJob() { if (JOB) { recycle(JOB.c); JOB = null; } }
 function finishJob() {
   const j = JOB, ch = CK.L[j.idx]; JOB = null;
   if (!ch) { recycle(j.c); return; }
-  const old = ch[j.kind]; if (old && old.c) { CK.bytes -= 0; recycle(old.c); }
-  ch[j.kind] = { c: j.c, bytes: j.c ? j.c.width * j.c.height * 4 : 0, w: j.gm.w, h: j.gm.h, oX: j.gm.oX, oY: j.gm.oY, s: j.S, pr: j.pr, pw: j.pw, ph: j.ph, sig: j.sig, t: performance.now(), kind: j.kind, gl: j.gl, empty: j.empty };
+  const old = ch[j.kind]; if (old && old.objs) freeObjs(old); if (old && old.c) { CK.bytes -= 0; recycle(old.c); }
+  ch[j.kind] = { c: j.c, bytes: j.c ? j.c.width * j.c.height * 4 : 0, w: j.gm.w, h: j.gm.h, oX: j.gm.oX, oY: j.gm.oY, s: j.S, pr: j.pr, pw: j.pw, ph: j.ph, sig: j.sig, t: performance.now(), kind: j.kind, gl: j.gl, empty: j.empty, objs: j.objs || null };
   CK.bakesTotal++;
 }
 function runJob(tEnd) {
@@ -211,35 +211,105 @@ function drawGridOverlay() {
 }
 // ---- vật thể + đối tượng động, xen kẽ theo vùng từ sau ra trước ----
 const frontOccluded = (x, y) => { x |= 0; y |= 0; for (let j = 0; j < 3; j++) { const q = tile(x + (j !== 1 ? 1 : 0), y + (j !== 0 ? 1 : 0)); if (q && ((q.b && !isRoad(q.b)) || q.t === 'f' || q.t === 'r' || q.t === 'm')) return true; } return false; };
-const dynItems = [[], []];
-function pushDyn(x, y, k, f) { const idx = LT.chunkOf(x | 0, y | 0, N); if (!CK.isVis[idx]) return; CK.dyn[idx].push({ k, f, b: frontOccluded(x, y) }); }
+// ---- người / ngựa / xe / giặc: vẽ SAU mọi ảnh vùng, rồi vẽ lại đúng các vật đứng trước người (che theo từng ô, không theo vùng) ----
+let DA = [], DB = [];
+function pushDyn(x, y, k, f, hw, up) { const idx = LT.chunkOf(x | 0, y | 0, N); if (!CK.isVis[idx]) return; DA.push({ k, f, x, y, hw, up }); }
+const SPQ = []; let SPB = 0;
+const sprCap = () => (GFX.mode === 'high' ? 16 : GFX.mode === 'med' ? 8 : 4) * 1048576;
+function freeSpr(o) { if (o.spr) { SPB -= o.spr.bytes; CK.bytes -= o.spr.bytes; o.spr.c.width = 0; o.spr.c.height = 0; o.spr = null; } }
+function freeObjs(l) { if (l && l.objs) for (let i = 0; i < l.objs.length; i++) freeSpr(l.objs[i]); }
+// ảnh riêng của một vật thể tĩnh (vẽ đúng như khi dựng vùng, cùng tỉ lệ), dựng lười khi có người đứng sau nó
+function objSprite(l, o) {
+  if (o.spr) return o.spr;
+  const S = l.s, pr = l.pr, e = o.e, cw = Math.ceil(2 * e[0] * S * pr), chh = Math.ceil((e[1] + e[2]) * S * pr);
+  if (cw < 2 || chh < 2 || cw * chh > 6e6) return null;
+  const c = document.createElement('canvas'); c.width = cw; c.height = chh; const c2 = c.getContext('2d'); c2.setTransform(pr, 0, 0, pr, 0, 0);
+  const sox = ox, soy = oy, ss = s, sW = W, sH = H, sGL = GLOW, sctx = ctx, sZM = ZM;
+  s = S; ox = e[0] * S - (o.x - o.y) * 32 * S; oy = e[1] * S - (o.x + o.y) * 16 * S; W = cw / pr; H = chh / pr; ZM = false; GLOW = []; ctx = c2;
+  try { o.f(); } finally { ctx = sctx; ox = sox; oy = soy; s = ss; W = sW; H = sH; GLOW = sGL; ZM = sZM; }
+  o.spr = { c, bytes: cw * chh * 4, cw, chh }; SPB += o.spr.bytes; CK.bytes += o.spr.bytes; SPQ.push(o);
+  while (SPB > sprCap() && SPQ.length > 1) { const v = SPQ.shift(); if (v !== o) freeSpr(v); else SPQ.push(v); }
+  return o.spr;
+}
+const ORG = new Array(NCH).fill(null);
+// vật tĩnh o có đứng trước người ở (fx,fy) không? (người ở sau vật theo trục x hoặc y và nằm trong dải của vật)
+const inFront = (fx, fy, o) => fx < o.x + o.w && fy < o.y + o.d && (fx < o.x || fy < o.y);
+// vẽ một người: nếu có vật đứng trước thì vẽ người vào ảnh tạm rồi XOÁ phần bị che bằng chính hình của vật đó (destination-out), cuối cùng chép lên màn hình.
+// Cách này pha trộn đúng ở mép mờ và không vẽ đè hai lần; người không bị che thì vẽ thẳng.
+const TMP = { c: null, x: null };
+function drawActor(a) {
+  const pa = P(a.x, a.y), hw = (a.hw || 26) * s, up = (a.up || 66) * s, dn = (a.dn || 6) * s;
+  const Rx = Math.floor((pa.x - hw) * DPR) / DPR, Ry = Math.floor((pa.y - up) * DPR) / DPR, Rw = Math.ceil((2 * hw + 2) * DPR) / DPR, Rh = Math.ceil((up + dn + 2) * DPR) / DPR;
+  const occ = []; const tx = a.x | 0, ty = a.y | 0, cx0 = (tx / CHK) | 0, cy0 = (ty / CHK) | 0;
+  for (let dj = 0; dj <= 1; dj++) for (let di = 0; di <= 1; di++) {
+    const cx = cx0 + di, cy = cy0 + dj; if (cx >= CGW || cy >= CGW) continue; const idx = cy * CGW + cx, ch = CK.L[idx], l = ch && ch.o, r = ORG[idx]; if (!l || !l.objs || !r) continue;
+    const objs = l.objs, x0c = cx * CHK, y0c = cy * CHK;
+    for (let k = 0; k < objs.length; k++) {
+      const o = objs[k]; if (!inFront(a.x, a.y, o)) continue;
+      const e = o.e, ax = l.oX + ((o.x - x0c) - (o.y - y0c)) * 32 * l.s, ay = l.oY + ((o.x - x0c) + (o.y - y0c)) * 16 * l.s;
+      const dx = r.dx + (ax - e[0] * l.s) * r.k, dy = r.dy + (ay - e[1] * l.s) * r.k, dw = 2 * e[0] * l.s * r.k, dh = (e[1] + e[2]) * l.s * r.k;
+      if (dx >= Rx + Rw || dx + dw <= Rx || dy >= Ry + Rh || dy + dh <= Ry) continue;
+      occ.push({ o, l, dx, dy, dw, dh });
+    }
+  }
+  let live = null;
+  for (let k = 0; k < DB.length; k++) {
+    const o = DB[k]; if (!inFront(a.x, a.y, o)) continue;
+    const p0 = P(o.x, o.y + o.d), p1 = P(o.x + o.w, o.y), p2 = P(o.x + o.w, o.y + o.d), bx0 = Math.min(p0.x - 6 * s, P(o.x, o.y).x - o.EW * s), bx1 = Math.max(p1.x + 6 * s, P(o.x, o.y).x + o.EW * s), by0 = P(o.x, o.y).y - o.H * s, by1 = p2.y + 4 * s;
+    if (bx1 <= Rx || bx0 >= Rx + Rw || by1 <= Ry || by0 >= Ry + Rh) continue; (live = live || []).push(o);
+  }
+  if (!occ.length && !live) { a.f(); return; }
+  const pw = Math.ceil(Rw * DPR), ph = Math.ceil(Rh * DPR);
+  if (!TMP.c) { TMP.c = document.createElement('canvas'); TMP.x = TMP.c.getContext('2d'); }
+  if (TMP.c.width < pw || TMP.c.height < ph) { TMP.c.width = Math.max(pw, TMP.c.width); TMP.c.height = Math.max(ph, TMP.c.height); } else { TMP.x.setTransform(1, 0, 0, 1, 0, 0); TMP.x.globalCompositeOperation = 'source-over'; TMP.x.clearRect(0, 0, TMP.c.width, TMP.c.height); }
+  const main = ctx, tx2 = TMP.x; ctx = tx2; tx2.setTransform(DPR, 0, 0, DPR, -Rx * DPR, -Ry * DPR);
+  try {
+    a.f(); tx2.globalCompositeOperation = 'destination-out';
+    for (let k = 0; k < occ.length; k++) { const q = occ[k], sp = objSprite(q.l, q.o); if (sp) tx2.drawImage(sp.c, 0, 0, sp.cw, sp.chh, q.dx, q.dy, q.dw, q.dh); }
+    if (live) for (let k = 0; k < live.length; k++) live[k].f();
+  } finally { tx2.globalCompositeOperation = 'source-over'; ctx = main; }
+  ctx.drawImage(TMP.c, 0, 0, pw, ph, Rx, Ry, pw / DPR, ph / DPR);
+}
+let RPN = 0;
 function drawChunksObjects() {
-  for (let i = 0; i < CK.vis.length; i++) CK.dyn[CK.vis[i]].length = 0;
-  const st = CK.st, nowN = NIGHT > .05;
+  DA = []; DB = [];
+  const st = CK.st, nowN = NIGHT > .05; RPN = 0;
   // công trình đang thi công / vừa xong (vẽ trực tiếp mỗi khung)
-  for (let i = 0; i < CK.vis.length; i++) { const idx = CK.vis[i], a = st.dyn[idx]; for (let j = 0; j < a.length; j++) { const b = a[j]; CK.dyn[idx].push({ k: b.x + b.y + (b.k === 'hall' ? 2.6 : 1), f: () => (s < .45 ? lowBuilding(b) : b.k === 'hall' ? drawHall() : drawB(b)), b: b.k === 'hall' ? false : frontOccluded(b.x, b.y) }); } }
+  for (let i = 0; i < CK.vis.length; i++) { const idx = CK.vis[i], a = st.dyn[idx]; for (let j = 0; j < a.length; j++) { const b = a[j], hall = b.k === 'hall'; DB.push({ k: b.x + b.y + (hall ? 2.6 : 1), x: b.x, y: b.y, w: hall ? 2 : (b.w || 1), d: hall ? 2 : (b.h || 1), H: hall ? 130 : (EXT[EXTK[b.k] || 'default'] || EXT.default)[1], EW: hall ? 110 : (EXT[EXTK[b.k] || 'default'] || EXT.default)[0], f: () => (s < .45 ? lowBuilding(b) : hall ? drawHall() : drawB(b)) }); } }
   if (!ZM) {
     const nW = Math.ceil(WALK.length * GFX.actors);
     for (let i = 0; i < nW; i++) { const w = WALK[i]; if (w._c !== w.cls) { w._c = w.cls; w.fk = figKindOf(w.cls, i); w.fv = figVarOf(w.fk, i); } pushDyn(w.x, w.y, w.x + w.y, () => FIGS.draw(w.fk, w.fv, w.x, w.y, w.dx == null ? 1 : w.dx, w.dy == null ? 0 : w.dy, T * 8.5 + w.ph, !!w.mv)); }
     const nT = Math.ceil(traffic.length * Math.max(.5, GFX.actors));
-    for (let i = 0; i < nT; i++) { const a = traffic[i]; pushDyn(a.x, a.y, a.x + a.y, () => a.kind === 0 ? drawRider(a) : drawWagon(a));
-      if (a.kind === 2 && a.trail) for (const n of [9, 18, 27]) { const q = a.trail[n]; if (!q || !roadAt(Math.floor(q.x), Math.floor(q.y))) continue; pushDyn(q.x, q.y, q.x + q.y, () => { if (n === 27) { FIGS.draw('phu', 1, q.x, q.y, q.dirX ?? 1, q.dirY ?? 0, a.phase, true); return; } horseBody(q.x, q.y, a.phase + n, q.dirX ?? 1, q.dirY ?? 0, '#78634d'); box(q.x - .08, q.y - .15, .17, .19, 10, 5, n === 9 ? '#a58e63' : '#907254'); }); } }
+    for (let i = 0; i < nT; i++) { const a = traffic[i]; pushDyn(a.x, a.y, a.x + a.y, () => a.kind === 0 ? drawRider(a) : drawWagon(a), a.kind === 0 ? 30 : 76, a.kind === 0 ? 70 : 64);
+      if (a.kind === 2 && a.trail) for (const n of [9, 18, 27]) { const q = a.trail[n]; if (!q || !roadAt(Math.floor(q.x), Math.floor(q.y))) continue; pushDyn(q.x, q.y, q.x + q.y, () => { if (n === 27) { FIGS.draw('phu', 1, q.x, q.y, q.dirX ?? 1, q.dirY ?? 0, a.phase, true); return; } horseBody(q.x, q.y, a.phase + n, q.dirX ?? 1, q.dirY ?? 0, '#78634d'); box(q.x - .08, q.y - .15, .17, .19, 10, 5, n === 9 ? '#a58e63' : '#907254'); }, 40, 62); } }
   }
   if (G.raid) {
     const r = G.raid, k = Math.max(0, Math.min(.92, 1 - r.t / (r.t0 || 3))), n = Math.min(10, Math.ceil(r.total / 25));
     for (let i = 0; i < n; i++) {
       const u = 8 + rnd(i * 7 + r.side) * 30, sx = r.side === 0 ? u : r.side === 1 ? N - .5 : r.side === 2 ? u : .5, sy = r.side === 0 ? .5 : r.side === 1 ? u : r.side === 2 ? N - .5 : u;
-      const rx = sx + (G.hx + 1 - sx) * k + Math.sin(T * 2 + i) * .15, ry = sy + (G.hy + 1 - sy) * k + Math.cos(T * 2 + i) * .15;
-      pushDyn(rx, ry, rx + ry, () => { FIGS.draw('giac', i % 3, rx, ry, G.hx + 1 - sx, G.hy + 1 - sy, T * 9 + i * 1.3, true); if (i === 0) flag(rx + .25, ry, 0, 38, '#2f2a2a'); });
+      const pp = raidPos(r, i, sx, sy, k); if (!pp) continue;
+      pushDyn(pp.x, pp.y, pp.x + pp.y, () => { FIGS.draw('giac', i % 3, pp.x, pp.y, pp.dx, pp.dy, T * 9 + i * 1.3, true); if (i === 0) flag(pp.x + .25, pp.y, 0, 38, '#2f2a2a'); });
     }
   }
+  // 1) ảnh vùng (nền + công trình tĩnh), 2) công trình động, 3) người từ sau ra trước: vẽ người xong thì vẽ lại các vật đứng trước người
   for (let i = 0; i < CK.vis.length; i++) {
-    const idx = CK.vis[i], ch = CK.L[idx], cx = idx % CGW, cy = (idx / CGW) | 0, dl = CK.dyn[idx];
-    if (dl.length > 1) dl.sort((a, b) => a.k - b.k);
-    for (let j = 0; j < dl.length; j++) if (dl[j].b) dl[j].f();
-    if (ch && ch.o) { const r = putLayer(ch.o, cx * CHK, cy * CHK); if (nowN) for (const g2 of ch.o.gl) GLOW.push([g2[0] * r.k + r.dx, g2[1] * r.k + r.dy, g2[2] * r.k, g2[3]]); }
-    for (let j = 0; j < dl.length; j++) if (!dl[j].b) dl[j].f();
+    const idx = CK.vis[i], ch = CK.L[idx], cx = idx % CGW, cy = (idx / CGW) | 0; ORG[idx] = null;
+    if (ch && ch.o) { const r = putLayer(ch.o, cx * CHK, cy * CHK); ORG[idx] = r; if (nowN) for (const g2 of ch.o.gl) GLOW.push([g2[0] * r.k + r.dx, g2[1] * r.k + r.dy, g2[2] * r.k, g2[3]]); }
   }
+  DB.sort((p, q) => p.k - q.k); for (let i = 0; i < DB.length; i++) DB[i].f();
+  DA.sort((p, q) => p.k - q.k);
+  for (let i = 0; i < DA.length; i++) drawActor(DA[i]);
+}
+// đường đi của giặc theo từng đợt: tìm một lần bằng đường ngắn nhất qua ô trống (không xuyên công trình); không lưu vào bản lưu
+const RP = new WeakMap();
+function raidPos(r, i, sx, sy, k) {
+  let rp = RP.get(r); if (!rp) { rp = { F: undefined }; RP.set(r, rp); }
+  if (rp.F === undefined) { if (RPN >= 1) return null; RPN++; const gl = LT.walkNearest(G, G.hx + 1.5, G.hy + 3, 8, false); rp.F = gl ? LT.walkField(G, gl[0], gl[1], true) : null; }
+  let path = rp[i]; if (path === undefined) path = rp[i] = LT.walkFieldPath(rp.F, sx, sy) || false;
+  if (!path) return { x: sx + (G.hx + 1 - sx) * k, y: sy + (G.hy + 1 - sy) * k, dx: G.hx + 1 - sx, dy: G.hy + 1 - sy };   // không có đường: đi thẳng như cũ
+  const len = path.length - 1, f = Math.max(0, Math.min(len, k * len - (i % 3) * .7)), a = Math.floor(f), b = Math.min(len, a + 1), u = f - a, lx = (rnd(i * 5.3 + 1) - .5) * .4, ly = (rnd(i * 3.1 + 2) - .5) * .4;
+  const x0 = path[a][0] + .5 + lx, y0 = path[a][1] + .5 + ly, x1 = path[b][0] + .5 + lx, y1 = path[b][1] + .5 + ly;
+  return { x: x0 + (x1 - x0) * u, y: y0 + (y1 - y0) * u, dx: x1 - x0 || 1, dy: y1 - y0 };
 }
 // ---- bộ đếm hiệu năng (F3) ----
 const PERF = { ema: 16.7, on: lsGet('lt-perf') === '1', ft: new Float32Array(240), dtv: new Float32Array(240), n: 0, last: 0, moving: false, el: null, acc: 0, lastDraw: 0, draws: 0, fps: 0, fpsT: 0, fpsN: 0, worst: 0, avg: 0, p95: 0, autoN: 0, autoSum: 0 };
