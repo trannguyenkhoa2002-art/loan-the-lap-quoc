@@ -46,7 +46,7 @@ function merlons(x,y,w,d,z,col){const m=.2*Math.min(w,d)+.06;for(const [a,b] of 
 function flag(x,y,z,h,col){const a=P(x,y,z),b=P(x,y,z+h);line(a,b,OUT,1.4);const wv=Math.sin(T*4+x)*2*s;
   poly([b,{x:b.x+9*s,y:b.y+1*s},{x:b.x+9*s+wv,y:b.y+15*s},{x:b.x+4.5*s+wv,y:b.y+12*s},{x:b.x,y:b.y+15*s}],col)}
 function door(x,y,z,w,h,col){poly([P(x,y,z),P(x+w,y,z),P(x+w,y,z+h),P(x,y,z+h)],col,OUT,.7)}
-function person(x,y,body,ph,head='#f1c9a5',hat='bun',carry=0,spear=0){const p=P(x,y),st=Math.sin(T*9+ph),b=Math.abs(st)*1.2*s,Y=p.y-b,lg=hat==='futou'||hat==='wing'||hat==='bald';
+function person(x,y,body,ph,head='#f1c9a5',hat='bun',carry=0,spear=0){if(typeof figPerson==='function')return figPerson(x,y,body,ph,hat,carry,spear);const p=P(x,y),st=Math.sin(T*9+ph),b=Math.abs(st)*1.2*s,Y=p.y-b,lg=hat==='futou'||hat==='wing'||hat==='bald';
   ctx.fillStyle='rgba(0,0,0,.15)';ctx.beginPath();ctx.ellipse(p.x,p.y,4.5*s,2*s,0,0,7);ctx.fill();
   if(!lg){line({x:p.x-1.2*s,y:Y-3*s},{x:p.x-1.2*s-st*1.6*s,y:p.y},'#3a2f28',1.5);line({x:p.x+1.2*s,y:Y-3*s},{x:p.x+1.2*s+st*1.6*s,y:p.y},'#3a2f28',1.5)}
   const bot=lg?Y-.6*s:Y-2.5*s,bw=lg?3.6:3.1;

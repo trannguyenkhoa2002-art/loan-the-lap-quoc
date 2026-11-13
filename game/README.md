@@ -134,3 +134,9 @@ Kiểm thử: `node tests/battle.test.js`, `sim.test.js`, `war2.test.js`, `round
 - Tổng quản các thành có công tắc **Tự đồn trú thành mới chiếm**; "Việc cần chú ý" cảnh báo thành sắp nổi loạn. Phục quốc bị hãm (tối đa một lần mỗi 2 năm, xác suất thấp).
 - Gợi ý ngữ cảnh ngắn, có nút ✕ tắt (nhớ trong localStorage). Điện thoại (≤ 700px): thanh trên gọn, ba nút màn hình 44px, bảng toàn màn hình cuộn được, thanh xây dựng cuộn ngang, chạm kéo và chụm hai ngón để zoom. Không còn confirm()/alert() gốc: hộp thoại `ask()` trong game.
 - Bot nhiều hướng: `STYLE=climb|van|chinh|cat|conquer|trade node tests/bot.test.js 46 7 78` (thêm `DEMO100K=1` để thử mộ 100.000 quân). Kiểm thử: `tests/round10.test.js`.
+
+## Hình người, ngựa, xe (sprite)
+
+- `js/sprites.js`: người, ngựa, kỵ binh vẽ bằng Canvas 2D thành sprite dựng sẵn theo (loại, biến thể, hướng mặt/lưng, khung đi, bậc tỉ lệ); lật trái–phải; đi 6 khung (Thấp: 3), có dáng đứng yên; xa (<0,55) hoặc chế độ Thấp thì giản lược. Bộ nhớ sprite có trần 14 / 8 / 4 MB (Cao / Trung bình / Thấp), loại cái dùng lâu nhất.
+- Loại: nông dân (nón lá, cuốc / gánh lúa / giỏ), thợ (tạp dề, búa), thương nhân (áo dài màu, khăn, túi / xe đẩy), sĩ nhân, quan (mũ cánh chuồn, hốt), tăng, phu gánh, lính (giáp, mũ trụ, giáo / cung / cờ), giặc (khăn đỏ, đao), phụ nữ, trẻ em, kỵ binh, ngựa. Biến thể áo theo hạt giống.
+- Đo: `tests/bench-crowd.js` (`__crowdSetup`, `__crowdBench`, `__sheet` để xem cận cảnh từng loại).

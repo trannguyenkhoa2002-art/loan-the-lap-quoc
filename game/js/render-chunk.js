@@ -220,17 +220,17 @@ function drawChunksObjects() {
   for (let i = 0; i < CK.vis.length; i++) { const idx = CK.vis[i], a = st.dyn[idx]; for (let j = 0; j < a.length; j++) { const b = a[j]; CK.dyn[idx].push({ k: b.x + b.y + (b.k === 'hall' ? 2.6 : 1), f: () => (s < .45 ? lowBuilding(b) : b.k === 'hall' ? drawHall() : drawB(b)), b: b.k === 'hall' ? false : frontOccluded(b.x, b.y) }); } }
   if (!ZM) {
     const nW = Math.ceil(WALK.length * GFX.actors);
-    for (let i = 0; i < nW; i++) { const w = WALK[i], stt = ST[w.cls] || ST.luu; pushDyn(w.x, w.y, w.x + w.y, () => person(w.x, w.y, w.cls === 'quan' && i % 2 ? '#6a3a8a' : stt[0], w.ph, '#f1c9a5', stt[1], (w.cls === 'nong' || w.cls === 'thuong') && i % 2 === 0, w.cls === 'binh')); }
+    for (let i = 0; i < nW; i++) { const w = WALK[i]; if (w._c !== w.cls) { w._c = w.cls; w.fk = figKindOf(w.cls, i); w.fv = figVarOf(w.fk, i); } pushDyn(w.x, w.y, w.x + w.y, () => FIGS.draw(w.fk, w.fv, w.x, w.y, w.dx == null ? 1 : w.dx, w.dy == null ? 0 : w.dy, T * 8.5 + w.ph, !!w.mv)); }
     const nT = Math.ceil(traffic.length * Math.max(.5, GFX.actors));
     for (let i = 0; i < nT; i++) { const a = traffic[i]; pushDyn(a.x, a.y, a.x + a.y, () => a.kind === 0 ? drawRider(a) : drawWagon(a));
-      if (a.kind === 2 && a.trail) for (const n of [9, 18, 27]) { const q = a.trail[n]; if (!q || !roadAt(Math.floor(q.x), Math.floor(q.y))) continue; pushDyn(q.x, q.y, q.x + q.y, () => { if (n === 27) { person(q.x, q.y, '#81617d', a.phase, '#e5c3a0', 'non', 1); return; } horseBody(q.x, q.y, a.phase + n, q.dirX ?? 1, q.dirY ?? 0, '#78634d'); box(q.x - .08, q.y - .15, .17, .19, 10, 5, n === 9 ? '#a58e63' : '#907254'); }); } }
+      if (a.kind === 2 && a.trail) for (const n of [9, 18, 27]) { const q = a.trail[n]; if (!q || !roadAt(Math.floor(q.x), Math.floor(q.y))) continue; pushDyn(q.x, q.y, q.x + q.y, () => { if (n === 27) { FIGS.draw('phu', 1, q.x, q.y, q.dirX ?? 1, q.dirY ?? 0, a.phase, true); return; } horseBody(q.x, q.y, a.phase + n, q.dirX ?? 1, q.dirY ?? 0, '#78634d'); box(q.x - .08, q.y - .15, .17, .19, 10, 5, n === 9 ? '#a58e63' : '#907254'); }); } }
   }
   if (G.raid) {
     const r = G.raid, k = Math.max(0, Math.min(.92, 1 - r.t / (r.t0 || 3))), n = Math.min(10, Math.ceil(r.total / 25));
     for (let i = 0; i < n; i++) {
       const u = 8 + rnd(i * 7 + r.side) * 30, sx = r.side === 0 ? u : r.side === 1 ? N - .5 : r.side === 2 ? u : .5, sy = r.side === 0 ? .5 : r.side === 1 ? u : r.side === 2 ? N - .5 : u;
       const rx = sx + (G.hx + 1 - sx) * k + Math.sin(T * 2 + i) * .15, ry = sy + (G.hy + 1 - sy) * k + Math.cos(T * 2 + i) * .15;
-      pushDyn(rx, ry, rx + ry, () => { person(rx, ry, i % 2 ? '#3a2a2a' : '#4a2f2a', i * 3, '#c9a184'); const p = P(rx, ry, 16); line({ x: p.x + 4 * s, y: p.y + 9 * s }, { x: p.x + 7 * s, y: p.y - 6 * s }, '#6b4a2e', 1.2); poly([{ x: p.x + 5.8 * s, y: p.y - 5 * s }, { x: p.x + 8.2 * s, y: p.y - 5.5 * s }, { x: p.x + 7.6 * s, y: p.y - 10 * s }], '#d0d4d8', OUT, .4); if (i === 0) flag(rx + .25, ry, 0, 30, '#2f2a2a'); });
+      pushDyn(rx, ry, rx + ry, () => { FIGS.draw('giac', i % 3, rx, ry, G.hx + 1 - sx, G.hy + 1 - sy, T * 9 + i * 1.3, true); if (i === 0) flag(rx + .25, ry, 0, 38, '#2f2a2a'); });
     }
   }
   for (let i = 0; i < CK.vis.length; i++) {

@@ -54,14 +54,8 @@ function updateTraffic(dt){
     else{const move=Math.min(d,dt*(a.kind===0?.48:.34));a.x+=dx/d*move;a.y+=dy/d*move;a.trail??=[];if(!a.trail.length||Math.hypot(a.x-a.trail[0].x,a.y-a.trail[0].y)>.08){a.trail.unshift({x:a.x,y:a.y,dirX:a.dirX,dirY:a.dirY});a.trail.length=Math.min(35,a.trail.length)}}
   }
 }
-function horseBody(x,y,phase,dx,dy,coat='#856047'){
-  const p=P(x,y),dir=(dx-dy)>=0?1:-1,bob=Math.sin(phase*2)*.55*s;ctx.save();ctx.translate(p.x,p.y);ctx.scale(dir,1);
-  ctx.fillStyle='#15372b28';ctx.beginPath();ctx.ellipse(0,0,10*s,3.2*s,0,0,7);ctx.fill();
-  for(let i=0;i<4;i++){const xx=(i<2?-5:5)*s+(i%2)*2*s,walk=Math.sin(phase+(i%2)*Math.PI+(i>1?1.5:0))*2.7*s;line({x:xx,y:-8*s+bob},{x:xx+walk*.4,y:-4*s},shade(coat,-.3),1.8);line({x:xx+walk*.4,y:-4*s},{x:xx+walk,y:0},shade(coat,-.3),1.5);line({x:xx+walk,y:0},{x:xx+walk+1.8*s,y:0},'#363b30',1.7)}
-  ctx.fillStyle=coat;ctx.beginPath();ctx.ellipse(0,-10*s+bob,8*s,4*s,0,0,7);ctx.fill();line({x:5*s,y:-11*s+bob},{x:8*s,y:-18*s+bob},coat,5);dot({x:10*s,y:-18*s+bob},3*s,coat);line({x:8*s,y:-19*s+bob},{x:7*s,y:-22*s+bob},coat,1.5);line({x:7*s,y:-12*s+bob},{x:8*s,y:-18*s+bob},'#403c2d',1.5);line({x:-8*s,y:-10*s},{x:-11*s,y:-5*s+Math.sin(phase)*s},'#3e3529',1.8);dot({x:11*s,y:-19*s+bob},.55*s,'#161e1b');line({x:9*s,y:-17*s},{x:13*s,y:-17*s},'#c3b089',.6);
-  ctx.fillStyle='#714b37';ctx.fillRect(-4*s,-14*s+bob,8*s,3*s);ctx.restore();return p;
-}
-function drawRider(a){const p=horseBody(a.x,a.y,a.phase,a.dirX??1,a.dirY??0),b=Math.sin(a.phase*2)*.55*s;line({x:p.x-1*s,y:p.y-13*s+b},{x:p.x-3*s,y:p.y-6*s+b},'#444d46',2);poly([{x:p.x-3*s,y:p.y-22*s+b},{x:p.x+2*s,y:p.y-22*s+b},{x:p.x+4*s,y:p.y-13*s+b},{x:p.x-4*s,y:p.y-13*s+b}],'#536e77');dot({x:p.x,y:p.y-25*s+b},2.4*s,'#e5c3a0');poly([{x:p.x-5*s,y:p.y-26*s+b},{x:p.x+5*s,y:p.y-26*s+b},{x:p.x,y:p.y-30*s+b}],'#cbbb83');line({x:p.x+2*s,y:p.y-19*s+b},{x:p.x+9*s,y:p.y-17*s},'#b9a27a',.7)}
+function horseBody(x,y,phase,dx,dy,coat='#856047'){return FIGS.draw('horse',(coat.charCodeAt(2)+coat.charCodeAt(4))%5,x,y,dx,dy,phase,true)}
+function drawRider(a){if(a.rv==null)a.rv=Math.floor(rnd(a.x*31+a.y*17+a.tx)*100)%2;return FIGS.draw(a.rv?'ky':'kyt',Math.floor(rnd(a.tx*9+a.ty)*5),a.x,a.y,a.dirX??1,a.dirY??0,a.phase,true)}
 function drawWagon(a){const dx=a.dirX??1,dy=a.dirY??0,tail=a.trail?.[6]||{x:a.x-dx*.52,y:a.y-dy*.52},p=P(tail.x,tail.y),hp=horseBody(a.x,a.y,a.phase,dx,dy,'#94704e');line({x:p.x-3*s,y:p.y-6*s},{x:hp.x,y:hp.y-5*s},'#805f3c',1.2);line({x:p.x+3*s,y:p.y-6*s},{x:hp.x+3*s,y:hp.y-5*s},'#805f3c',1.2);
   for(const off of [-8,8]){const cx=p.x+off*s,cy=p.y-3*s;ctx.fillStyle='#4b4937';ctx.beginPath();ctx.ellipse(cx,cy,4*s,5.3*s,0,0,7);ctx.fill();ctx.strokeStyle='#c2a26a';ctx.lineWidth=s;ctx.stroke();for(let i=0;i<5;i++){const ang=a.phase*.6+i*Math.PI*2/5;line({x:cx,y:cy},{x:cx+Math.cos(ang)*3.5*s,y:cy+Math.sin(ang)*4.6*s},'#a68a58',.65)}}
   box(tail.x-.22,tail.y-.22,.44,.44,5,6,'#95784d');for(let i=0;i<3;i++){const q={x:p.x+(i-1)*4*s,y:p.y-12*s};dot(q,3.5*s,['#c8b58c','#96724e','#c2a76e'][i]);line({x:q.x-2*s,y:q.y},{x:q.x+2*s,y:q.y},'#6c624944',.6)}

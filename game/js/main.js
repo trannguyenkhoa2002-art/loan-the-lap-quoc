@@ -30,7 +30,7 @@ function newWalker(i) { return { cls: 'luu', x: G.hx + 2.5 + (i % 3) * .3, y: G.
 function stepWalkers(dt) {
   const run = G.speed > 0 && !blocking();
   for (const w of WALK) {
-    const dx = w.tx - w.x, dy = w.ty - w.y, d = Math.hypot(dx, dy);
+    const dx = w.tx - w.x, dy = w.ty - w.y, d = Math.hypot(dx, dy); w.mv = false;
     if (d < .05) {
       let alt = null;
       for (let n = 0; n < 8; n++) {
@@ -40,7 +40,7 @@ function stepWalkers(dt) {
         if (isRoad(q.b)) { alt = [(nx | 0) + .5, (ny | 0) + .5]; break; } if (!alt) alt = [nx, ny];
       }
       if (alt) { w.tx = alt[0]; w.ty = alt[1]; }
-    } else { const v = Math.min(d, dt * .8 * (run ? Math.max(1, Math.min(G.speed, 2)) : 0)); w.x += dx / d * v; w.y += dy / d * v; }
+    } else { const v = Math.min(d, dt * .8 * (run ? Math.max(1, Math.min(G.speed, 2)) : 0)); w.x += dx / d * v; w.y += dy / d * v; w.dx = dx / d; w.dy = dy / d; w.mv = v > 0; }
   }
 }
 
