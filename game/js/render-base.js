@@ -90,7 +90,7 @@ function drawShadowList(list){
     else if(k!=='farm'&&k!=='salt'&&k!=='canal'&&k!=='tea'&&!isRoad(b))shadow(x+.1,y+.2,.75,.55,15)}}
 function drawGround(){drawGroundTiles(0,0,N,N);drawGroundEdge();drawRoadList(G.bl);drawShadowList(G.bl)}
 
-function drawB(b){const x=b.x,y=b.y,v=rnd(x*17+y*31),pop=Math.min(1,(T-(b.born||-9))*4),k=b.k;
+function drawB(b){const x=b.x,y=b.y,v=rnd(x*17+y*31),pop=Math.max(0,Math.min(1,(T-(b.born||-9))*4)),k=b.k;
   if(pop<1){const c=P(x+.5,y+.5);ctx.save();ctx.translate(c.x,c.y);ctx.scale(1,.4+.6*pop);ctx.translate(-c.x,-c.y)}
   if(k==='house'){const wc=['#efe6d2','#e6dcc6','#dccdac'][v*3|0],rc=['#5d6b73','#667078','#57626b'][v*7%3|0];
     box(x+.12,y+.17,.76,.66,0,2,'#a9a498');box(x+.15,y+.2,.7,.6,2,11,wc);

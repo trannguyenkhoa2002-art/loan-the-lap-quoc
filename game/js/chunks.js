@@ -44,7 +44,7 @@ LT.chunkScan = function (bl, N, T, st) {
     const b = bl[j], x = b.x, y = b.y, cx = x >> 3, cy = y >> 3, i = cy * gw + cx, k = b.k;
     if (cx >= gw || cy >= gw) continue;
     const code = kindCode(k), road = isRoadK(k) || k === 'gate';
-    const newborn = !road && b.born != null && T - b.born < .35, dyn = !!b.building || newborn;
+    const newborn = !road && b.born != null && T >= b.born && T - b.born < .35, dyn = !!b.building || newborn;
     const vg = b.id * 17 + code * 3 + (b.building ? 1 : 0) + (newborn ? 2 : 0) + (b.on ? 7 : 0);
     mixG(i, vg);
     // lớp mặt đất của vùng vẽ thêm một vòng ô của vùng bên cạnh (bóng đổ về −x,+y, đường): chữ ký cũng ảnh hưởng 8 vùng kề khi công trình nằm sát biên

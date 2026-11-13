@@ -214,7 +214,7 @@ addEventListener('beforeunload', () => { try { if (G && !G.over) LT.saveSlot(G, 
 LT.onLog = (t, c) => { if ((c === 'bad' || c === 'good') && performance.now() - toastClock > 900) { toastClock = performance.now(); toast(t, c); } };
 function startGame(g, isNew) {
   if (typeof initHub === 'function') initHub();
-  G = g; G.tool = null; G.cat = G.cat || 0; UI.overShown = false; UI.selB = null; hideInspect();
+  G = g; G.tool = null; G.cat = G.cat || 0; for (const b of G.bl) delete b.born; UI.overShown = false; UI.selB = null; hideInspect();
   traffic.splice(0); WALK.length = 0; FL = []; hover = null;
   G.era = Math.min(3, G.rank);
   paintTiles(); buildBar(); syncWalkers();
