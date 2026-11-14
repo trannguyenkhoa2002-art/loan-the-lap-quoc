@@ -51,7 +51,7 @@
   window.__occTest = async function (count, sc, seed, pts, centre) {
     const anim0 = GFX.anim, ms0 = GFX.animMs; GFX.anim = 0; GFX.animMs = 0; T = 5;   // tắt hoạt hoạ để ảnh nền không đổi giữa các lần chụp
     view(sc, centre ? centre[0] : G.hx + 3, centre ? centre[1] : G.hy + 3); WALK.length = 0; traffic.length = 0; G.raid = null; G.speed = 0;
-    for (let i = 0, calm = 0; i < 1200 && calm < 12; i++) { draw(); calm = (CK.bakesFrame === 0 && !JOB && CK.q.length === 0 && CK.vis.every(i => { const c = CK.L[i]; return c && (!c.o || c.o.empty || Math.abs(c.o.s - quantS(s)) < 1e-6); })) ? calm + 1 : 0; if (i % 30 === 29) await new Promise(r => setTimeout(r, 0)); }
+    for (let i = 0, calm = 0; i < 1200 && calm < 12; i++) { draw(); calm = (CK.bakesFrame === 0 && !JOB && CK.q.length === 0 && CK.vis.every(i => { const c = CK.L[i]; return c && (!c.o || c.o.empty || Math.abs(s / c.o.s - 1) <= .012); })) ? calm + 1 : 0; if (i % 30 === 29) await new Promise(r => setTimeout(r, 0)); }
     draw(); const base = MAINCTX.getImageData(0, 0, cv.width, cv.height), CW = cv.width;
     const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
     const rule = (fx, fy, x, y, w, d) => fx < x + w && fy < y + d && (fx < x || fy < y), cases = [];
@@ -86,7 +86,7 @@
     const w = b.w || 1, d = b.h || 1, pts = [[b.x + w / 2, b.y - .45, 'nong'], [b.x - .45, b.y + d / 2, 'quan'], [b.x + w / 2, b.y + d + .45, 'binh'], [b.x + w + .45, b.y + d / 2, 'thuong'], [b.x + w + .45, b.y + d + .45, 'si'], [b.x - .45, b.y - .45, 'tang']];
     WALK.length = 0; traffic.length = 0; G.raid = null; G.speed = 0; pts.forEach(([x, y, c], i) => WALK.push({ cls: c, x, y, ph: i, tx: x, ty: y })); view(sc, b.x + w / 2, b.y + d / 2); return k + ' ở (' + b.x + ',' + b.y + ') ' + w + 'x' + d;
   };
-  window.__settle = async function () { for (let i = 0, calm = 0; i < 1200 && calm < 12; i++) { draw(); calm = (CK.bakesFrame === 0 && !JOB && CK.q.length === 0 && CK.vis.every(i => { const c = CK.L[i]; return c && (!c.o || c.o.empty || Math.abs(c.o.s - quantS(s)) < 1e-6); })) ? calm + 1 : 0; if (i % 30 === 29) await new Promise(r => setTimeout(r, 0)); } return 'settled'; };
+  window.__settle = async function () { for (let i = 0, calm = 0; i < 1200 && calm < 12; i++) { draw(); calm = (CK.bakesFrame === 0 && !JOB && CK.q.length === 0 && CK.vis.every(i => { const c = CK.L[i]; return c && (!c.o || c.o.empty || Math.abs(s / c.o.s - 1) <= .012); })) ? calm + 1 : 0; if (i % 30 === 29) await new Promise(r => setTimeout(r, 0)); } return 'settled'; };
   // đặt một công trình loại k riêng lẻ trên bãi cỏ trống (9×9) để kiểm thứ tự che quanh công trình cao; trả về [x,y]
   window.__isolated = function (k) {
     for (let r = 14; r < 50; r++) for (let a = 0; a < 40; a++) { const x = Math.round(G.hx + 1 + Math.cos(a / 40 * 6.283 + r) * r), y = Math.round(G.hy + 1 + Math.sin(a / 40 * 6.283 + r) * r); let ok = x > 6 && y > 6 && x < N - 6 && y < N - 6; for (let j = -4; ok && j <= 4; j++) for (let i = -4; i <= 4; i++) { const q = tile(x + i, y + j); if (!q || q.b || q.t !== 'g') { ok = false; break; } }

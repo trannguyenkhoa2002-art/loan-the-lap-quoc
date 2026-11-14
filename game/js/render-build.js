@@ -21,7 +21,28 @@ function detailedHouse(b){const x=b.x,y=b.y,v=rnd(x*17+y*31),wall=lerpC('#ddd0ae
   box(x+.24,y+.27,.095,.095,27,10,'#919385');for(let i=0;i<5;i++){const u=(T*.15+i*.2+v)%1;ctx.globalAlpha=(1-u)*.2;dot(P(x+.285+u*.2,y+.315,39+u*22),(1+u*4)*s,'#ebe7d9')}ctx.globalAlpha=1;
 }
 const oldBuilding=drawB;
-function finishedBuilding(b){if(b.k==='house')detailedHouse(b);else if(b.k==='road'||b.k==='pave')drawRoad(b);else if(NEWKIND[b.k])drawNew(b);else oldBuilding({...b,born:-9})}
+function detailedFarm(b){
+  const x=b.x,y=b.y,v=rnd(x*17+y*31),month=LT.month(G.week);
+  const ripe=month>=8&&month<=10,harvested=month===11||month===12;
+  const soil=harvested?'#a48b60':'#718d62',water=ripe?'#809c78':'#5f9690';
+  quad(x+.025,y+.025,.95,.95,0,'#b3a178',null);
+  quad(x+.09,y+.09,.82,.82,0,harvested?'#8f805b':water,null);
+  for(let r=0;r<5;r++){
+    const yy=y+.17+r*.155;
+    line(P(x+.12,yy+.05),P(x+.88,yy+.05),soil,2);
+    for(let c=0;c<5;c++){
+      const xx=x+.18+c*.155,p=P(xx,yy),h=(harvested?2.2:ripe?8:5)*s;
+      const col=harvested?'#c7b279':!b.on?'#8c9b70':ripe?lerpC('#be9b3e','#e1c66c',v):lerpC('#467d4d','#8bae5a',v);
+      line(p,{x:p.x-1.5*s,y:p.y-h},col,1.2);
+      line(p,{x:p.x+2*s,y:p.y-h*.78},col,1);
+      if(ripe&&!harvested)dot({x:p.x+1.8*s,y:p.y-h*.77},1.1*s,'#e6cc7d');
+    }
+  }
+  line(P(x+.08,y+.08),P(x+.91,y+.08),'#d3c39a',.85);
+  line(P(x+.91,y+.08),P(x+.91,y+.91),'#77694a',1.3);
+  if(!harvested){line(P(x+.12,y+.35),P(x+.29,y+.35),'#c6e2cd77',.7);line(P(x+.66,y+.8),P(x+.84,y+.8),'#c6e2cd66',.7)}
+}
+function finishedBuilding(b){if(b.k==='house')detailedHouse(b);else if(b.k==='farm')detailedFarm(b);else if(b.k==='road'||b.k==='pave')drawRoad(b);else if(NEWKIND[b.k])drawNew(b);else oldBuilding({...b,born:-9})}
 function scaffolding(b,p){const x=b.x,y=b.y,h=b.k==='tower'||b.k==='temple'?58:39,level=Math.min(h,8+p*h*1.1),timber='#9a7b50';
   for(const [a,c] of [[.04,.07],[.96,.07],[.04,.95],[.96,.95]]){line(P(x+a,y+c),P(x+a,y+c,level),timber,1.5);for(let z=8;z<level;z+=10)line(P(x+a-.035,y+c,z),P(x+a+.035,y+c,z),'#e3d1a0',1)}
   for(let z=9;z<level;z+=11){line(P(x+.04,y+.95,z),P(x+.96,y+.95,z),timber,1.5);line(P(x+.96,y+.07,z),P(x+.96,y+.95,z),timber,1.5);line(P(x+.04,y+.95,z-8),P(x+.96,y+.95,z),timber,.9);line(P(x+.96,y+.07,z-8),P(x+.96,y+.95,z),timber,.9);if(z<level-3){quad(x+.01,y+.87,.99,.12,z,'#ab8b58',null)}}

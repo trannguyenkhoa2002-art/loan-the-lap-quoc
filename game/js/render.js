@@ -74,15 +74,15 @@ function drawNew(b) {
 function mound(x, y, v) {
   const p = P(x + .5, y + .5);
   ctx.fillStyle = 'rgba(30,50,25,.14)'; ctx.beginPath(); ctx.ellipse(p.x + 4 * s, p.y + 1 * s, 28 * s, 11 * s, 0, 0, 7); ctx.fill();
-  const g = ctx.createRadialGradient(p.x - 8 * s, p.y - 16 * s, 2 * s, p.x, p.y - 6 * s, 30 * s); g.addColorStop(0, '#d3dc9d'); g.addColorStop(.6, '#9db56d'); g.addColorStop(1, '#6f8d55');
+  const g = ctx.createRadialGradient(p.x - 8 * s, p.y - 16 * s, 2 * s, p.x, p.y - 6 * s, 30 * s); g.addColorStop(0, '#b8ca8a'); g.addColorStop(.6, '#8fa56d'); g.addColorStop(1, '#617f56');
   ctx.beginPath(); ctx.moveTo(p.x - 30 * s, p.y); ctx.bezierCurveTo(p.x - 22 * s, p.y - (18 + v * 8) * s, p.x + 22 * s, p.y - (20 + v * 6) * s, p.x + 30 * s, p.y); ctx.quadraticCurveTo(p.x, p.y + 10 * s, p.x - 30 * s, p.y); ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = '#4f6d44'; ctx.lineWidth = lw() * .6; ctx.stroke();
   for (let i = 0; i < 6; i++) line({ x: p.x - 14 * s + i * 5.5 * s, y: p.y - (7 + (i % 3) * 3) * s }, { x: p.x - 13 * s + i * 5.5 * s, y: p.y - (10 + (i % 3) * 3) * s }, '#5f8a48', .8);
 }
 function ore(x, y, v) {
-  quad(x, y, 1, 1, 0, '#a8492c88', null);
-  boulder(x + .4, y + .42, .42, 15 + v * 14, v * 50, '#6b3d33'); boulder(x + .72, y + .7, .26, 8 + v * 6, v * 70, '#52302b'); if (v > .4) boulder(x + .2, y + .76, .18, 6, v * 90, '#7d4636');
-  const p = P(x + .5, y + .55, 8), tt = performance.now() / 420;
-  for (let i = 0; i < 5; i++) dot({ x: p.x + (i - 2) * 4.5 * s, y: p.y + (i % 2) * 3 * s - (i % 3) * 2 * s }, (1.5 + .9 * Math.max(0, Math.sin(tt + i * 1.9 + v * 9))) * s, i % 2 ? '#ffb15c' : '#ff7a3d');
+  quad(x+.04, y+.04, .92, .92, 0, '#74817866', null);
+  boulder(x + .4, y + .42, .42, 15 + v * 14, v * 50, '#65747a'); boulder(x + .72, y + .7, .26, 8 + v * 6, v * 70, '#4d5c66'); if (v > .4) boulder(x + .2, y + .76, .18, 6, v * 90, '#82908a');
+  const p = P(x + .5, y + .55, 8);
+  for (let i = 0; i < 4; i++) { const q={x:p.x+(i-2)*4.5*s,y:p.y+(i%2)*3*s-(i%3)*2*s}; line(q,{x:q.x+2*s,y:q.y-3*s},i%2?'#c29c73':'#a7c4c7',1.5); }
 }
 // các ô đặt được của công trình cần địa hình riêng (mỏ sắt, mỏ đá, trại gỗ, ruộng muối, vườn trà): tính một lần mỗi khi đổi công cụ/số công trình
 let hlKey = '', hlList = [];
@@ -102,7 +102,7 @@ function draw() {
   { const ph = (T / 150 + .1) % 1, sm = (a, b, v) => { const u = Math.max(0, Math.min(1, (v - a) / (b - a))); return u * u * (3 - 2 * u); };
     NIGHT = ph < .8 ? sm(.58, .68, ph) : 1 - sm(.92, 1, ph); DUSK = Math.max(0, 1 - Math.abs(NIGHT - .5) * 2); }
   ctx.clearRect(0, 0, W, H);
-  drawChunksGround(); drawClouds(); drawGridOverlay(); drawLayerOverlay();
+  drawChunksGround(); drawWaterHighlights(); drawClouds(); drawGridOverlay(); drawLayerOverlay(); drawBuildingFocus();
   if (G.tool && !ZM) { const pl = placeableTiles(), tp = .22 + .12 * Math.sin(performance.now() / 300); for (const t of pl) { const p = P(t.x + .5, t.y + .5); if (p.x < -60 || p.y < -60 || p.x > W + 60 || p.y > H + 60) continue; quad(t.x, t.y, 1, 1, 0, 'rgba(255,230,120,' + tp.toFixed(2) + ')', 'rgba(255,240,170,.55)', 1); } }
   if (hover && G.tool) {
     const err = LT.canPlace(G, G.tool, hover.x, hover.y), ok = !err;

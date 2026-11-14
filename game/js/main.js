@@ -76,11 +76,20 @@ function frame(now) {
   perfFrame(now, performance.now() - t0, LASTDRAW);
 }
 function layoutResize() {
-  DPR = Math.min(2, window.devicePixelRatio || 1);
+  const maxDpr = GFX.mode === 'low' ? 1 : GFX.mode === 'med' ? 1.5 : 2;
+  DPR = Math.min(maxDpr, window.devicePixelRatio || 1);
   if (W) { ox += (innerWidth - W) / 2; oy += (innerHeight - H) / 2; }
   W = innerWidth; H = innerHeight; cv.width = W * DPR; cv.height = H * DPR;
 }
 addEventListener('resize', layoutResize);
+function recoverGraphics() {
+  chunkReset(); FIGS.reset();
+  if (typeof TMP !== 'undefined' && TMP.c) { TMP.c.width = 0; TMP.c.height = 0; TMP.c = null; TMP.x = null; }
+  layoutResize();
+  if (G) { paintTiles(); drawMini(); }
+}
+cv.addEventListener('contextlost', e => { e.preventDefault(); });
+cv.addEventListener('contextrestored', recoverGraphics);
 function centerHall() { if (!G) return; const p = P(G.hx + 1, G.hy + 1); ox += W / 2 + 40 - p.x; oy += H * .44 - p.y; }
 function goNearest() {
   if (!G || !G.tool) return; const list = LT.placeableTiles(G, G.tool);
